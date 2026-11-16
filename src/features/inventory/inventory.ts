@@ -4,6 +4,8 @@ import type { components, operations } from '../../shared/api/generated/schema';
 export type Asset = components['schemas']['InventoryAsset'];
 export type AssetPage = components['schemas']['AssetInventoryPage'];
 export type ValuationPage = components['schemas']['AssetValuationPage'];
+export type Valuation = components['schemas']['AssetValuation'];
+export type ValuationEntries = components['schemas']['AssetValuationEntries'];
 export type HistoryPage = components['schemas']['InventoryHistoryPage'];
 export type Process = components['schemas']['BusinessProcess'];
 export type Responsible = components['schemas']['BusinessResponsible'];
@@ -19,6 +21,10 @@ export const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const count = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar los datos del inventario.');
 export interface InventoryService {
+  valuation(company: string, asset: string, id: string, signal: AbortSignal): Promise<Valuation>;
+  startValuation(company: string, asset: string, body: components['schemas']['StartAssetValuationInput'], signal: AbortSignal): Promise<Valuation>;
+  editValuation(company: string, asset: string, id: string, body: components['schemas']['EditAssetValuationInput'], signal: AbortSignal): Promise<Valuation>;
+  confirmValuation(company: string, asset: string, id: string, body: components['schemas']['ConfirmAssetValuationInput'], signal: AbortSignal): Promise<Valuation>;
   create(company: string, body: NewAsset, signal: AbortSignal): Promise<Asset>;
   edit(company: string, id: string, body: EditAsset, signal: AbortSignal): Promise<Asset>;
   archive(company: string, id: string, body: components['schemas']['ArchiveInventoryAsset'], signal: AbortSignal): Promise<Asset>;
@@ -33,6 +39,10 @@ export interface InventoryService {
   responsible(company: string, id: string, signal: AbortSignal): Promise<Responsible>;
 }
 export const createInventoryService = (client = api): InventoryService => ({
+  valuation: async (empresaId, activoId, valoracionId, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones/{valoracionId}', { path: { empresaId, activoId, valoracionId }, signal })).data,
+  startValuation: async (empresaId, activoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones', { path: { empresaId, activoId }, body, signal })).data,
+  editValuation: async (empresaId, activoId, valoracionId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones/{valoracionId}', { path: { empresaId, activoId, valoracionId }, body, signal })).data,
+  confirmValuation: async (empresaId, activoId, valoracionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones/{valoracionId}/confirmar', { path: { empresaId, activoId, valoracionId }, body, signal })).data,
   create: async (empresaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/activos', { path: { empresaId }, body, signal })).data,
   edit: async (empresaId, activoId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/activos/{activoId}', { path: { empresaId, activoId }, body, signal })).data,
   archive: async (empresaId, activoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/activos/{activoId}/archivar', { path: { empresaId, activoId }, body, signal })).data,
@@ -57,7 +67,7 @@ function validPage<T>(page: { elementos: T[]; pagina: number; tamano: number; ha
   if (!page || !Array.isArray(page.elementos) || page.pagina !== expected || page.tamano !== 5 || typeof page.hayMas !== 'boolean' || page.elementos.length > 5) throw invalid();
   return page;
 }
-function validValuations(page: ValuationPage, expected: number, assetId: string) {
+export function validValuations(page: ValuationPage, expected: number, assetId: string) {
   validPage(page, expected);
   for (const value of page.elementos) {
     if (!value || !uuid.test(value.valoracionId) || value.activoId?.toLowerCase() !== assetId.toLowerCase() || !count(value.numero) || !count(value.revision)
@@ -78,6 +88,11 @@ function validValuations(page: ValuationPage, expected: number, assetId: string)
     if (value.entradas.autorizacionTratamiento != null && !['SI', 'NO', 'NO_APLICA'].includes(value.entradas.autorizacionTratamiento)) throw invalid();
   }
   return page;
+}
+export function validateValuation(value: Valuation, assetId: string, id?: string) {
+  validValuations({ elementos: [value], pagina: 0, tamano: 5, hayMas: false }, 0, assetId);
+  if (id && value.valoracionId !== id) throw invalid();
+  return value;
 }
 function validHistory(page: HistoryPage, expected: number) {
   validPage(page, expected);

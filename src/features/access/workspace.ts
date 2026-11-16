@@ -1,5 +1,7 @@
 import { api, ApiError } from '../../shared/api/client';
 import type { components } from '../../shared/api/generated/schema';
+import { createPanelService, validatePanel, validateResults } from '../dashboard/panel';
+import type { Panel, PanelQuery, PanelService, Results } from '../dashboard/panel';
 
 export type Identity = components['schemas']['SessionView'];
 export type Company = components['schemas']['CompanyMembership'];
@@ -9,7 +11,7 @@ export function capabilities(company: Company) {
   return { read: company.roles.some(role => ['AE', 'GS', 'AU'].includes(role)),
     write: company.roles.some(role => ['AE', 'GS'].includes(role)), admin: company.roles.includes('AE') };
 }
-export interface AccessService {
+export interface AccessService extends PanelService {
   session(signal: AbortSignal): Promise<Identity>;
   login(correo: string, contrasena: string, signal: AbortSignal): Promise<Identity>;
   logout(signal: AbortSignal): Promise<void>;
@@ -17,6 +19,7 @@ export interface AccessService {
   company(id: string, signal: AbortSignal): Promise<Company>;
 }
 export const createAccessService = (client = api): AccessService => ({
+  ...createPanelService(client),
   session: async signal => (await client.request('get', '/api/v1/identidad/sesion', { signal })).data,
   login: async (correo, contrasena, signal) => (await client.request('post', '/api/v1/identidad/sesion', { body: { correo, contrasena }, signal })).data,
   logout: async signal => { await client.request('delete', '/api/v1/identidad/sesion', { signal }); },
@@ -44,6 +47,12 @@ export type AccessState = {
   companies?: CompanyPage;
   error?: ApiError;
   notice?: string;
+  panel?: Panel;
+  panelQuery?: PanelQuery;
+  panelLoading?: boolean;
+  panelError?: ApiError;
+  results?: Results;
+  resultsError?: ApiError;
 };
 export function accessMessage(error: ApiError) {
   if (error.code === 'CREDENCIALES_INVALIDAS' || error.status === 401) return 'El correo o la contraseña no son correctos.';
@@ -83,7 +92,7 @@ export class WorkspaceStore {
     if (problem.status === 401 && !login) return this.expire();
     this.set({ status: login ? 'login' : 'error', identity, error: problem });
   }
-  open = async (target?: string, page = 0) => {
+  open = async (target?: string, page = 0, panelQuery?: PanelQuery) => {
     const hadIdentity = Boolean(this.state.identity);
     this.target = target; this.page = page;
     const task = this.begin({ status: 'loading' });
@@ -97,6 +106,7 @@ export class WorkspaceStore {
         if (!task.current()) return;
         if (company.empresaId.toLowerCase() !== target.toLowerCase()) throw invalid();
         this.set({ status: 'company', identity, company });
+        if (capabilities(company).read) await this.loadPanel(panelQuery);
       } else {
         const companies = await this.service.companies(page, task.signal);
         if (!task.current()) return;
@@ -112,7 +122,33 @@ export class WorkspaceStore {
       } else this.fail(error, identity);
     }
   };
-  retry = () => this.open(this.target, this.page);
+  retry = () => this.open(this.target, this.page, this.state.panelQuery);
+  loadPanel = async (query: PanelQuery = {}) => {
+    const { identity, company } = this.state;
+    if (!identity || !company || !capabilities(company).read) return;
+    const effective: PanelQuery = { ...query, pagina: query.pagina ?? 0, tamano: 5, detalle: query.detalle ?? 'EVALUACIONES', baseRiesgo: query.baseRiesgo ?? 'RESIDUAL' };
+    const base: AccessState = { status: 'company', identity, company, panelQuery: effective };
+    const task = this.begin({ ...base, panelLoading: true });
+    try {
+      const panel = validatePanel(await this.service.panel(company.empresaId, effective, task.signal), company.empresaId, effective);
+      if (!task.current()) return;
+      const evaluation = panel.evaluaciones.elementos[0];
+      if (!evaluation) { this.set({ ...base, panel }); return; }
+      // Results have their own endpoint and revision; they are never recomputed in the browser.
+      try {
+        const results = validateResults(await this.service.results(company.empresaId, evaluation.evaluacionId, task.signal), evaluation.evaluacionId);
+        if (task.current()) this.set({ ...base, panel, results });
+      } catch (error) {
+        if (!task.current()) return;
+        if (error instanceof ApiError && [401, 403].includes(error.status)) return this.fail(error, identity);
+        this.set({ ...base, panel, resultsError: error instanceof ApiError ? error : new ApiError(502, 'RESPUESTA_INVALIDA', 'Resultados no disponibles.') });
+      }
+    } catch (error) {
+      if (!task.current()) return;
+      if (error instanceof ApiError && [401, 403].includes(error.status)) return this.fail(error, identity);
+      this.set({ ...base, panelError: error instanceof ApiError ? error : new ApiError(502, 'RESPUESTA_INVALIDA', 'Panel no disponible.') });
+    }
+  };
   login = async (correo: string, contrasena: string) => {
     const task = this.begin({ status: 'loading' });
     try {

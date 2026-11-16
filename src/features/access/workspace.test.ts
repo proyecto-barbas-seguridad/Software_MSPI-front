@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiError, createApiClient } from '../../shared/api/client';
 import { capabilities, createAccessService, WorkspaceStore } from './workspace';
 import type { Company, Identity } from './workspace';
-import { a, b, deferred, identity, service } from './fixtures.test-support';
+import { a, b, deferred, emptyPanel, identity, service } from './fixtures.test-support';
 describe('Session and company scope', () => {
   it('integrates the typed transport, CSRF rotation, login, context and server logout', async () => {
     let signedIn = false; let csrf = 0;
@@ -24,6 +24,7 @@ describe('Session and company scope', () => {
       }
       if (url === '/api/v1/mis-empresas?pagina=0&tamano=10') return Response.json({ empresas: [a], pagina: 0, tamano: 10, hayMas: false });
       if (url === '/api/v1/empresas/' + a.empresaId + '/contexto') return Response.json(a);
+      if (url.startsWith('/api/v1/empresas/' + a.empresaId + '/panel?')) return Response.json(emptyPanel());
       throw new Error('Undeclared request: ' + url);
     });
     const store = new WorkspaceStore(createAccessService(createApiClient({ fetch: fetcher })));

@@ -11,7 +11,7 @@ export function App({ cache, store: providedStore }: { cache: ReturnType<typeof 
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const panelHref = state.company && capabilities(state.company).read ? '/interfaz/#/empresas/' + state.company.empresaId : undefined;
   return <Providers mode={mode} cache={cache}>
-    <WorkspaceShell mode={mode} onToggleMode={() => setMode(mode === 'light' ? 'dark' : 'light')} panelHref={panelHref}>
+    <WorkspaceShell mode={mode} onToggleMode={() => setMode(mode === 'light' ? 'dark' : 'light')} panelHref={panelHref} section={state.section}>
       <AccessWorkspace store={store} />
     </WorkspaceShell>
   </Providers>;

@@ -46,6 +46,12 @@ Los filtros de fecha inclusiva y base de riesgo se aplican en el servidor. El de
 
 El corte del panel, el alcance de cada fecha y la revisión independiente de resultados quedan visibles. Cero, pendiente, no aplica y provisional conservan su significado; los fallos no producen ceros ficticios. No se muestran totales de activos ni enlaces a páginas todavía inexistentes. [Criterios, decisiones y verificación de HU-FRONT-009](docs/hu/HU-FRONT-009.md).
 
+## Inventario y ficha React · HU-FRONT-010
+
+Desde una empresa en `/interfaz/`, **Inventario de activos** abre `#/empresas/{uuid}/activos`. La búsqueda por nombre/código y los filtros de tipo/estado se aplican en el backend, con cinco registros por página. Las fichas usan `#/empresas/{uuid}/activos/{activoId}`; incluyen referencias, clasificación vigente y revisiones pendientes separadas, datos personales declarados e historial paginado.
+
+AE, GS y AU pueden consultar; RA solo no solicita datos de inventario. Los valores C/I/D se leen sin valores predeterminados ni cálculos locales. Los campos faltantes y los condicionales que no aplican conservan sus diferencias. Esta historia no añade formularios de creación, edición, archivo, restauración o clasificación. Las consultas anteriores siguen disponibles en sus URL originales. [Alcance, decisiones y validación de HU-FRONT-010](docs/hu/HU-FRONT-010.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

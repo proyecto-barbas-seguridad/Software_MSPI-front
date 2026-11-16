@@ -2,6 +2,8 @@ import { api, ApiError } from '../../shared/api/client';
 import type { components } from '../../shared/api/generated/schema';
 import { createPanelService, validatePanel, validateResults } from '../dashboard/panel';
 import type { Panel, PanelQuery, PanelService, Results } from '../dashboard/panel';
+import { createInventoryService } from '../inventory/inventory';
+import type { AssetQuery, InventoryService } from '../inventory/inventory';
 
 export type Identity = components['schemas']['SessionView'];
 export type Company = components['schemas']['CompanyMembership'];
@@ -38,6 +40,7 @@ function validCompany(value: Company) {
   if (!value || !uuid.test(value.empresaId) || typeof value.nombre !== 'string' || typeof value.zonaHoraria !== 'string'
     || !Array.isArray(value.roles) || !value.roles.length || value.roles.some(role => !Object.hasOwn(roleNames, role))
     || new Set(value.roles).size !== value.roles.length) throw invalid();
+  try { new Intl.DateTimeFormat('es-CO', { timeZone: value.zonaHoraria }).format(); } catch { throw invalid(); }
   return value;
 }
 export type AccessState = {
@@ -53,6 +56,9 @@ export type AccessState = {
   panelError?: ApiError;
   results?: Results;
   resultsError?: ApiError;
+  section?: 'panel' | 'assets';
+  assetId?: string;
+  inventoryQuery?: AssetQuery;
 };
 export function accessMessage(error: ApiError) {
   if (error.code === 'CREDENCIALES_INVALIDAS' || error.status === 401) return 'El correo o la contraseña no son correctos.';
@@ -71,7 +77,10 @@ export class WorkspaceStore {
   private controller?: AbortController;
   private target?: string;
   private page = 0;
-  constructor(private service: AccessService = accessService) {}
+  private section: 'panel' | 'assets' = 'panel';
+  private assetId?: string;
+  private inventoryQuery: AssetQuery = { estado: 'ACTIVO' };
+  constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService()) {}
   getSnapshot = () => this.state;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private set(state: AccessState) { this.state = state; this.listeners.forEach(listener => listener()); }
@@ -85,6 +94,7 @@ export class WorkspaceStore {
   dispose() { ++this.generation; this.controller?.abort(); }
   expire = () => {
     this.dispose(); this.target = undefined; this.page = 0;
+    this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel';
     this.set({ status: 'login', notice: 'Tu sesión venció o dejó de estar activa. Vuelve a entrar.' });
   };
   private fail(error: unknown, identity?: Identity, login = false) {
@@ -92,8 +102,10 @@ export class WorkspaceStore {
     if (problem.status === 401 && !login) return this.expire();
     this.set({ status: login ? 'login' : 'error', identity, error: problem });
   }
-  open = async (target?: string, page = 0, panelQuery?: PanelQuery) => {
+  open = async (target?: string, page = 0, panelQuery?: PanelQuery, inventoryRoute?: { assetId?: string }) => {
     const hadIdentity = Boolean(this.state.identity);
+    if (target?.toLowerCase() !== this.target?.toLowerCase()) this.inventoryQuery = { estado: 'ACTIVO' };
+    this.section = inventoryRoute ? 'assets' : 'panel'; this.assetId = inventoryRoute?.assetId;
     this.target = target; this.page = page;
     const task = this.begin({ status: 'loading' });
     let identity: Identity | undefined;
@@ -105,8 +117,9 @@ export class WorkspaceStore {
         const company = validCompany(await this.service.company(target, task.signal));
         if (!task.current()) return;
         if (company.empresaId.toLowerCase() !== target.toLowerCase()) throw invalid();
-        this.set({ status: 'company', identity, company });
-        if (capabilities(company).read) await this.loadPanel(panelQuery);
+        if (this.section === 'assets' && !capabilities(company).read) throw new ApiError(403, 'ACCESO_DENEGADO', 'No tienes acceso al inventario.');
+        this.set({ status: 'company', identity, company, section: this.section, assetId: this.assetId, inventoryQuery: this.inventoryQuery });
+        if (this.section === 'panel' && capabilities(company).read) await this.loadPanel(panelQuery);
       } else {
         const companies = await this.service.companies(page, task.signal);
         if (!task.current()) return;
@@ -122,7 +135,11 @@ export class WorkspaceStore {
       } else this.fail(error, identity);
     }
   };
-  retry = () => this.open(this.target, this.page, this.state.panelQuery);
+  retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'assets' ? { assetId: this.assetId } : undefined);
+  rememberInventoryQuery = (companyId: string, query: AssetQuery) => { if (companyId.toLowerCase() === this.target?.toLowerCase()) this.inventoryQuery = query; };
+  authorizationLost = (error: ApiError) => {
+    this.dispose(); this.fail(error, this.state.identity);
+  };
   loadPanel = async (query: PanelQuery = {}) => {
     const { identity, company } = this.state;
     if (!identity || !company || !capabilities(company).read) return;
@@ -159,6 +176,7 @@ export class WorkspaceStore {
   logout = async () => {
     const task = this.begin({ status: 'loading' });
     this.target = undefined; this.page = 0;
+    this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel';
     try {
       await this.service.logout(task.signal);
       if (task.current()) this.set({ status: 'login', notice: 'Sesión cerrada.' });

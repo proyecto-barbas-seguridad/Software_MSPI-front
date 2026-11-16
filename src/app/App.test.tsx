@@ -26,7 +26,7 @@ describe('Acceso Panorama', () => {
     expect(api.login).toHaveBeenCalledWith('persona@example.test', 'clave de prueba', expect.any(AbortSignal));
     await user.click(screen.getByRole('button', { name: 'Entrar a Empresa A' }));
     await screen.findByText('Empresa activa');
-    expect(screen.getByRole('link', { name: 'Activos' })).toHaveAttribute('href', '/empresas/' + a.empresaId + '/activos');
+    expect(screen.getByRole('link', { name: 'Activos' })).toHaveAttribute('href', '#/empresas/' + a.empresaId + '/activos');
     await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
     await screen.findByText('Sesión cerrada.');
     expect(screen.queryByText(a.nombre)).not.toBeInTheDocument();

@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import { gateway, route } from '../server/gateway.mjs';
+import { loadUiAssets } from '../server/ui-assets.mjs';
 
 const directory = mkdtempSync(join(tmpdir(), 'mspi-front-test-'));
 const origin = 'https://localhost:6443';
@@ -90,6 +91,40 @@ test('routes only explicitly permitted endpoints', () => {
     assert.equal(route('GET', path), undefined, path);
   }
   assert.equal(route('PUT', '/api/v1/identidad/sesion'), undefined);
+});
+
+test('serves the React build with a unique matching style nonce and a strict script policy', async () => {
+  const first = await call(publicServer, '/interfaz/');
+  const second = await call(publicServer, '/interfaz/');
+  assert.equal(first.status, 200);
+  const nonce = first.text.match(/name="mspi-style-nonce" content="([^"]+)"/)[1];
+  assert.match(nonce, /^[a-zA-Z0-9+/]{22}==$/);
+  assert.ok(first.headers['content-security-policy'].includes(`style-src 'self' 'nonce-${nonce}'`));
+  assert.ok(first.headers['content-security-policy'].includes("script-src 'self'"));
+  assert.ok(first.headers['content-security-policy'].includes("style-src-attr 'none'"));
+  assert.ok(!first.headers['content-security-policy'].includes('unsafe-inline'));
+  assert.ok(!first.text.includes('__MSPI_STYLE_NONCE__'));
+  assert.notEqual(nonce, second.text.match(/name="mspi-style-nonce" content="([^"]+)"/)[1]);
+  assert.equal(Number(first.headers['content-length']), Buffer.byteLength(first.text));
+  assert.equal(first.headers['cache-control'], 'no-store');
+  assert.equal((await call(publicServer, '/interfaz/', { method: 'HEAD' })).text, '');
+  assert.equal((await call(publicServer, '/')).status, 200);
+});
+
+test('publishes only declared build files and denies source, manifest and traversal requests', async () => {
+  const manifest = loadUiAssets();
+  assert.ok(manifest.size > 1, 'Run npm run build before gateway tests.');
+  for (const [name, file] of manifest) {
+    if (name === 'index.html') continue;
+    const result = await call(publicServer, '/interfaz/' + name);
+    assert.equal(result.status, 200);
+    assert.equal(result.headers['content-type'], file.type);
+  }
+  for (const path of ['/interfaz/.vite/manifest.json', '/interfaz/src/main.tsx', '/interfaz/assets/unknown.js',
+    '/interfaz/../server/main.mjs', '/interfaz/%2e%2e/index.html', '/interfaz/?nonce=untrusted']) {
+    assert.equal(route('GET', path), undefined, path);
+  }
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) assert.equal(route(method, '/interfaz/'), undefined);
 });
 
 test('exposes only the read-only evaluation routes with bounded pagination', () => {

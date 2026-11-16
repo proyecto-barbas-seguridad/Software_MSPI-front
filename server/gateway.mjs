@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { Agent, createServer, request } from 'node:https';
 import { pipeline } from 'node:stream';
+import { randomBytes } from 'node:crypto';
+import { loadUiAssets } from './ui-assets.mjs';
+
+const uiFiles = loadUiAssets();
 
 const uuid = '[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}';
 const companyRoute = new RegExp('^/empresas/' + uuid + '$');
@@ -65,6 +69,10 @@ export function route(method, target) {
     return { upstream: path };
   }
   if (['GET', 'HEAD'].includes(method)) {
+    if (path === '/interfaz' || path === '/interfaz/') return { ui: 'index.html' };
+    if (path.startsWith('/interfaz/') && uiFiles.has(path.slice('/interfaz/'.length))) {
+      return { ui: path.slice('/interfaz/'.length) };
+    }
     if (assets.has(path)) return { asset: assets.get(path) };
     if (path === '/' || path === '/empresas' || companyRoute.test(path) || evaluationView.test(path) || assetView.test(path)) {
       return { asset: ['index.html', 'text/html; charset=utf-8'] };
@@ -119,6 +127,21 @@ export function gateway({ tls, ca, origin, apiHost = 'mspi-api', apiPort = 8443 
     if (!selected) return reject(res, 404, 'NO_ENCONTRADO');
     const hasBody = req.headers['transfer-encoding'] || Number(req.headers['content-length'] || 0) > 0;
     if (req.method !== 'POST' && hasBody) return reject(res, 400, 'CUERPO_INESPERADO');
+
+    if (selected.ui) {
+      const file = uiFiles.get(selected.ui);
+      if (!file) return reject(res, 503, 'INTERFAZ_NO_COMPILADA');
+      const headers = { 'Content-Type': file.type };
+      let content = file.content;
+      if (selected.ui === 'index.html') {
+        const nonce = randomBytes(16).toString('base64');
+        content = Buffer.from(content.toString('utf8').replaceAll('__MSPI_STYLE_NONCE__', nonce));
+        headers['Content-Security-Policy'] = securityHeaders['Content-Security-Policy']
+          .replace("style-src 'self'", `style-src 'self' 'nonce-${nonce}'; style-src-attr 'none'`);
+      }
+      headers['Content-Length'] = content.length;
+      return finish(res, 200, headers, req.method === 'HEAD' ? undefined : content);
+    }
 
     if (selected.asset) {
       const [file, type] = selected.asset;

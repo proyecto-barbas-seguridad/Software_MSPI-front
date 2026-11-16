@@ -18,10 +18,18 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - name: Verify browser modules and HTTPS gateway
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.21.0'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Compile React and check TypeScript
+        run: npm run build
+      - name: Verify UI and HTTPS gateway
         run: |
           node --check public/api.js
           node --check public/app.js
-          node --test
+          npm test
       - name: Build frontend container
         run: docker build -t mspi-front-ci .

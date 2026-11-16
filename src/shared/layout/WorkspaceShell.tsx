@@ -1,0 +1,41 @@
+import { Box, Button, Divider, Link, Stack, Typography } from '@mui/material';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+
+export function WorkspaceShell({ children, mode, onToggleMode }: {
+  children: ReactNode;
+  mode: 'light' | 'dark';
+  onToggleMode: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return <Box>
+    <Link href="#contenido-react" sx={{ position: 'absolute', left: 16, top: -100, zIndex: 10,
+      bgcolor: 'background.paper', p: 1, '&:focus': { top: 8 } }}>Ir al contenido</Link>
+    <Box component="header" sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', px: { xs: 2, md: 3 }, py: 1.5 }}>
+      <Stack direction="row" useFlexGap sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+        <Typography component="p" variant="h2" color="primary">MSPI</Typography>
+        <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}>
+          <Button onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-controls="navegacion-react"
+            sx={{ display: { md: 'none' } }}>Menú</Button>
+          <Button onClick={onToggleMode} aria-label={mode === 'light' ? 'Usar tema oscuro' : 'Usar tema claro'}>
+            {mode === 'light' ? 'Tema oscuro' : 'Tema claro'}
+          </Button>
+        </Stack>
+      </Stack>
+    </Box>
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '220px minmax(0, 1fr)' }, minHeight: 'calc(100dvh - 80px)' }}>
+      <Box component="aside" id="navegacion-react" sx={{ display: { xs: menuOpen ? 'block' : 'none', md: 'block' },
+        bgcolor: 'background.paper', borderRight: { md: 1 }, borderBottom: { xs: 1, md: 0 }, borderColor: 'divider', p: 2 }}>
+        <Stack component="nav" aria-label="Navegación principal" spacing={1}>
+          <Button component="a" href="/interfaz/" aria-current="page" variant="outlined">Inicio</Button>
+          <Button component="a" href="/empresas">Acceder a mis empresas</Button>
+        </Stack>
+        <Divider sx={{ my: 3 }} />
+        <Typography variant="body2" color="text.secondary">Gestión de seguridad de la información</Typography>
+      </Box>
+      <Box component="main" id="contenido-react" sx={{ minWidth: 0, p: { xs: 2, md: 4 }, maxWidth: 1180, width: '100%', mx: 'auto' }}>
+        {children}
+      </Box>
+    </Box>
+  </Box>;
+}

@@ -1,16 +1,17 @@
 import { Alert, Box, Button, Chip, Link, Paper, Stack, TextField, Typography } from '@mui/material';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { FormEvent } from 'react';
 import { accessMessage, capabilities, roleNames, WorkspaceStore } from './workspace';
 import type { Company } from './workspace';
 import { CompanyDashboard } from '../dashboard/CompanyDashboard';
 import { InventoryWorkspace } from '../inventory/InventoryWorkspace';
+const EvaluationWorkspace = lazy(() => import('../evaluations/EvaluationWorkspace'));
 
 function routeFromHash() {
   const hash = window.location.hash;
   if (!hash || hash === '#/empresas') return {};
-  const route = /^#\/empresas\/([^/]+)(\/activos(?:\/([^/]+))?)?$/.exec(hash);
-  return route ? { target: route[1], inventoryRoute: route[2] ? { assetId: route[3] } : undefined } : { target: 'invalid' };
+  const route = /^#\/empresas\/([^/]+)(?:\/(activos|evaluaciones)(?:\/([^/]+))?)?$/.exec(hash);
+  return route ? { target: route[1], inventoryRoute: route[2] === 'evaluaciones' ? { section: 'evaluations' as const, evaluationId: route[3] } : route[2] ? { assetId: route[3] } : undefined } : { target: 'invalid' };
 }
 export function RoleChips({ company }: { company: Company }) {
   return <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }} aria-label="Roles en esta empresa">
@@ -160,8 +161,12 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
         <RoleChips company={state.company} />
         <Button sx={{ alignSelf: 'flex-start' }} onClick={() => navigate()}>Cambiar empresa</Button>
       </Stack>
-      {state.section !== 'assets' && <CompanyEntry company={state.company} />}
-      {capabilities(state.company).read && (state.section === 'assets'
+      {(!state.section || state.section === 'panel') && <CompanyEntry company={state.company} />}
+      {capabilities(state.company).read && (state.section === 'evaluations'
+        ? <Suspense fallback={<Typography role="status">Abriendo evaluaciones…</Typography>}><EvaluationWorkspace key={state.company.empresaId} company={state.company} evaluationId={state.evaluationId} page={state.evaluationPage || 0}
+            service={store.evaluations} scope={store.scopeSignal} query={state.answerQuery} onAuthorization={store.authorizationLost} onPage={page => store.rememberEvaluationPage(state.company!.empresaId, page)}
+            onQuery={query => store.rememberAnswerQuery(state.company!.empresaId, state.evaluationId!, query)} /></Suspense>
+        : state.section === 'assets'
         ? <InventoryWorkspace key={state.company.empresaId} company={state.company} assetId={state.assetId} query={state.inventoryQuery} service={store.inventory}
             onQuery={query => store.rememberInventoryQuery(state.company!.empresaId, query)} onAuthorization={store.authorizationLost}
             onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation} />
@@ -179,7 +184,7 @@ function CompanyEntry({ company }: { company: Company }) {
       : 'Tu acceso se limita a las acciones asignadas y su contexto mínimo. La pantalla de tareas estará disponible en su historia de implementación.'}</Typography>
     {permissions.admin && <Typography>También tienes permisos de administración de empresa. Su pantalla se incorporará en la historia correspondiente.</Typography>}
     {permissions.read && <Stack direction="row" useFlexGap sx={{ gap: 2, flexWrap: 'wrap' }}>
-      <Link href={url}>Resumen de empresa</Link><Link href={'#/empresas/' + company.empresaId + '/activos'}>Activos</Link><Link href={url + '/evaluaciones'}>Evaluaciones</Link>
+      <Link href={url}>Resumen de empresa</Link><Link href={'#/empresas/' + company.empresaId + '/activos'}>Activos</Link><Link href={'#/empresas/' + company.empresaId + '/evaluaciones'}>Evaluaciones</Link>
     </Stack>}
     <Typography variant="body2" color="text.secondary">Los permisos se verifican en cada operación. Nadie puede aprobar o devolver su propia entrega de una acción.</Typography>
   </Stack></Paper>;

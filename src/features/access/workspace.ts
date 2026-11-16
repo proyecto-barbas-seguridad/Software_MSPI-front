@@ -4,6 +4,8 @@ import { createPanelService, validatePanel, validateResults } from '../dashboard
 import type { Panel, PanelQuery, PanelService, Results } from '../dashboard/panel';
 import { createInventoryService } from '../inventory/inventory';
 import type { AssetQuery, InventoryService } from '../inventory/inventory';
+import { createEvaluationService } from '../evaluations/evaluations';
+import type { AnswerQuery, EvaluationService } from '../evaluations/evaluations';
 
 export type Identity = components['schemas']['SessionView'];
 export type Company = components['schemas']['CompanyMembership'];
@@ -56,8 +58,11 @@ export type AccessState = {
   panelError?: ApiError;
   results?: Results;
   resultsError?: ApiError;
-  section?: 'panel' | 'assets';
+  section?: 'panel' | 'assets' | 'evaluations';
   assetId?: string;
+  evaluationId?: string;
+  evaluationPage?: number;
+  answerQuery?: AnswerQuery;
   inventoryQuery?: AssetQuery;
 };
 export function accessMessage(error: ApiError) {
@@ -77,13 +82,16 @@ export class WorkspaceStore {
   private controller?: AbortController;
   private target?: string;
   private page = 0;
-  private section: 'panel' | 'assets' = 'panel';
+  private section: 'panel' | 'assets' | 'evaluations' = 'panel';
   private assetId?: string;
+  private evaluationId?: string;
+  private evaluationPage = 0;
+  private answerQuery?: { id: string; query: AnswerQuery };
   private inventoryQuery: AssetQuery = { estado: 'ACTIVO' };
   private dirty = false;
   private draftPending = false;
   private validation?: AbortController;
-  constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService()) {}
+  constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService(), readonly evaluations: EvaluationService = createEvaluationService()) {}
   getSnapshot = () => this.state;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private set(state: AccessState) { this.state = state; this.listeners.forEach(listener => listener()); }
@@ -96,6 +104,7 @@ export class WorkspaceStore {
   }
   dispose() { ++this.generation; this.controller?.abort(); this.validation?.abort(); }
   get draftDirty() { return this.dirty; }
+  get scopeSignal() { return this.controller?.signal; }
   setDraftDirty = (dirty: boolean) => { this.dirty = dirty; if (!dirty) this.draftPending = false; };
   setDraftPending = (pending: boolean) => { this.draftPending = pending; };
   allowNavigation = () => {
@@ -107,7 +116,7 @@ export class WorkspaceStore {
   expire = () => {
     this.setDraftDirty(false);
     this.dispose(); this.target = undefined; this.page = 0;
-    this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel';
+    this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
     this.set({ status: 'login', notice: 'Tu sesión venció o dejó de estar activa. Vuelve a entrar.' });
   };
   private fail(error: unknown, identity?: Identity, login = false) {
@@ -115,11 +124,12 @@ export class WorkspaceStore {
     if (problem.status === 401 && !login) return this.expire();
     this.set({ status: login ? 'login' : 'error', identity, error: problem });
   }
-  open = async (target?: string, page = 0, panelQuery?: PanelQuery, inventoryRoute?: { assetId?: string }) => {
+  open = async (target?: string, page = 0, panelQuery?: PanelQuery, route?: { section?: 'assets' | 'evaluations'; assetId?: string; evaluationId?: string }) => {
     if (!this.allowNavigation()) return;
     const hadIdentity = Boolean(this.state.identity);
-    if (target?.toLowerCase() !== this.target?.toLowerCase()) this.inventoryQuery = { estado: 'ACTIVO' };
-    this.section = inventoryRoute ? 'assets' : 'panel'; this.assetId = inventoryRoute?.assetId;
+    if (target?.toLowerCase() !== this.target?.toLowerCase()) { this.inventoryQuery = { estado: 'ACTIVO' }; this.evaluationPage = 0; this.answerQuery = undefined; }
+    if (route?.evaluationId && route.evaluationId !== this.answerQuery?.id) this.answerQuery = undefined;
+    this.section = route ? route.section || 'assets' : 'panel'; this.assetId = route?.assetId; this.evaluationId = route?.evaluationId;
     this.target = target; this.page = page;
     const task = this.begin({ status: 'loading' });
     let identity: Identity | undefined;
@@ -131,8 +141,8 @@ export class WorkspaceStore {
         const company = validCompany(await this.service.company(target, task.signal));
         if (!task.current()) return;
         if (company.empresaId.toLowerCase() !== target.toLowerCase()) throw invalid();
-        if (this.section === 'assets' && !capabilities(company).read) throw new ApiError(403, 'ACCESO_DENEGADO', 'No tienes acceso al inventario.');
-        this.set({ status: 'company', identity, company, section: this.section, assetId: this.assetId, inventoryQuery: this.inventoryQuery });
+        if (this.section !== 'panel' && !capabilities(company).read) throw new ApiError(403, 'ACCESO_DENEGADO', 'No tienes acceso a esta información operativa.');
+        this.set({ status: 'company', identity, company, section: this.section, assetId: this.assetId, inventoryQuery: this.inventoryQuery, evaluationId: this.evaluationId, evaluationPage: this.evaluationPage, answerQuery: this.answerQuery && this.answerQuery.id === this.evaluationId ? this.answerQuery.query : undefined });
         if (this.section === 'panel' && capabilities(company).read) await this.loadPanel(panelQuery);
       } else {
         const companies = await this.service.companies(page, task.signal);
@@ -149,7 +159,11 @@ export class WorkspaceStore {
       } else this.fail(error, identity);
     }
   };
-  retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'assets' ? { assetId: this.assetId } : undefined);
+  retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'assets' ? { assetId: this.assetId } : this.section === 'evaluations' ? { section: 'evaluations', evaluationId: this.evaluationId } : undefined);
+  rememberEvaluationPage = (company: string, page: number) => { if (company.toLowerCase() === this.target?.toLowerCase()) this.evaluationPage = page; };
+  rememberAnswerQuery = (company: string, id: string, query: AnswerQuery) => {
+    if (company.toLowerCase() === this.target?.toLowerCase() && id === this.evaluationId) this.answerQuery = { id, query };
+  };
   revalidate = async () => {
     if (!this.dirty) return this.retry();
     const previous = this.state;
@@ -214,7 +228,7 @@ export class WorkspaceStore {
     if (!this.allowNavigation()) return;
     const task = this.begin({ status: 'loading' });
     this.target = undefined; this.page = 0;
-    this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel';
+    this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
     try {
       await this.service.logout(task.signal);
       if (task.current()) this.set({ status: 'login', notice: 'Sesión cerrada.' });

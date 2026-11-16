@@ -94,7 +94,7 @@ describe('Company dashboard', () => {
     expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Siguiente' })); expect(onLoad).toHaveBeenLastCalledWith(expect.objectContaining({ pagina: 1, detalle: 'EVALUACIONES' }));
     await user.click(screen.getByRole('button', { name: 'Riesgos' })); expect(onLoad).toHaveBeenLastCalledWith(expect.objectContaining({ pagina: 0, detalle: 'RIESGOS' }));
-    expect(screen.getByRole('link', { name: 'Diagnóstico de prueba' })).toHaveAttribute('href', `/empresas/${a.empresaId}/evaluaciones/${evaluationId}`);
+    expect(screen.getByRole('link', { name: 'Diagnóstico de prueba' })).toHaveAttribute('href', `#/empresas/${a.empresaId}/evaluaciones/${evaluationId}`);
   });
   it('shows empty, loading and unavailable states without inventing aggregate zeros on errors', () => {
     const { unmount } = mount({ panel: undefined, results: undefined, panelLoading: true });

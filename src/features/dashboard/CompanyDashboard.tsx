@@ -92,13 +92,13 @@ export function CompanyDashboard({ state, onLoad }: { state: AccessState; onLoad
     </>}
   </Stack>;
 }
-function EvaluationResults({ data, name }: { data: Results; name: string }) {
+export function EvaluationResults({ data, name, panelSnapshot = true }: { data: Results; name: string; panelSnapshot?: boolean }) {
   const total = data.controlesGlobal;
   const score = total.puntaje === null ? labels[total.estado] : `${number.format(total.puntaje)} / 100`;
   return <Paper component="section" aria-label="Resultados de evaluación" sx={{ p: { xs: 2, md: 3 } }}><Stack spacing={2}>
-    <Typography variant="overline">Evaluación destacada · primera de esta página</Typography><Typography variant="h2">{name}</Typography>
+    <Typography variant="overline">{panelSnapshot ? 'Evaluación destacada · primera de esta página' : 'Resultados de esta evaluación'}</Typography><Typography variant="h2">{name}</Typography>
     <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}><Chip variant="outlined" label={labels[total.estado]} /><Typography>Revisión de resultados: {data.revision}</Typography></Stack>
-    <Typography color="text.secondary">El resultado se consulta por separado del corte del panel y puede reflejar cambios posteriores. Los cálculos pertenecen al backend.</Typography>
+    <Typography color="text.secondary">{panelSnapshot ? 'El resultado se consulta por separado del corte del panel y puede reflejar cambios posteriores.' : 'La ficha, las respuestas y los resultados se consultan por separado; sus revisiones pueden cambiar entre lecturas.'} Los cálculos pertenecen al backend.</Typography>
     <Typography>Puntaje de controles evaluados</Typography><Typography variant="h1" component="p">{score}</Typography>
     <Typography>Avance: {total.avance === null ? 'No calculable' : `${number.format(total.avance)} %`} · {total.evaluados} de {total.aplicables} controles</Typography>
     {total.avance !== null && <Box component="progress" max={100} value={total.avance} aria-label="Avance de evaluación" sx={{ width: '100%', height: 12, accentColor: 'primary.main' }} />}
@@ -120,7 +120,7 @@ function PanelDetails({ state }: { state: AccessState }) {
   if (!list.length) return <Alert severity="info">No hay registros en esta página con los filtros aplicados.</Alert>;
   return <Stack component="ul" spacing={2} sx={{ listStyle: 'none', p: 0, m: 0 }}>
     {panel.detalle === 'EVALUACIONES' && panel.evaluaciones.elementos.map(evaluation => <Box component="li" key={evaluation.evaluacionId}>
-      <Link href={`/empresas/${panel.empresaId}/evaluaciones/${evaluation.evaluacionId}`} sx={{ overflowWrap: 'anywhere' }}>{evaluation.nombre}</Link>
+      <Link href={`#/empresas/${panel.empresaId}/evaluaciones/${evaluation.evaluacionId}`} sx={{ overflowWrap: 'anywhere' }}>{evaluation.nombre}</Link>
       <Typography>{date(evaluation.fecha)} · {labels[evaluation.estado]}</Typography><Typography variant="body2">Controles: {evaluation.controlesEvaluados} / {evaluation.controlesAplicables} · Cláusulas: {evaluation.clausulasEvaluadas} / {evaluation.clausulasAplicables} · Sin decidir: {evaluation.sinDecidir} · Sin calificar: {evaluation.sinCalificacion} · Heredadas por confirmar: {evaluation.heredadasPendientes}</Typography>
     </Box>)}
     {panel.detalle === 'RIESGOS' && panel.riesgos.elementos.map(risk => <Box component="li" key={risk.riesgoId}><Typography sx={{ fontWeight: 600 }}>{risk.codigo}</Typography><Typography>{labels[risk.estado]} · {labels[risk.situacion]}</Typography><Typography>Nivel {panel.filtros.baseRiesgo.toLowerCase()}: {risk.nivel === null ? (risk.situacion === 'PENDIENTE' ? 'Pendiente' : 'Sin valoración vigente') : labels[risk.nivel]} · Probabilidad: {risk.probabilidad === null ? (risk.situacion === 'PENDIENTE' ? 'Pendiente' : 'Sin valoración vigente') : labels[risk.probabilidad]} · Impacto: {risk.impacto === null ? (risk.situacion === 'PENDIENTE' ? 'Pendiente' : 'Sin valoración vigente') : labels[risk.impacto]}</Typography></Box>)}

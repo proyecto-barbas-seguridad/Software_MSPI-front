@@ -1,12 +1,16 @@
 import { Alert, Box, Button, Chip, Link, Paper, Stack, Typography } from '@mui/material';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { ApiError } from '../../shared/api/client';
-import { accessMessage } from '../access/workspace';
+import { accessMessage, capabilities } from '../access/workspace';
 import type { Company } from '../access/workspace';
 import { timestamp } from '../dashboard/panel';
 import { assetStates, assetTypes, InventoryStore, levels, personalTypes } from './inventory';
 import type { AssetQuery, HistoryPage, InventoryService, InventoryState, ValuationPage } from './inventory';
+import type { EditMode } from './AssetEditor';
+const AssetEditor = lazy(() => import('./AssetEditor'));
+const noop = () => {};
+const allow = () => true;
 
 const fieldStyle = { width: '100%', minHeight: 44, px: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper', color: 'text.primary', font: 'inherit' };
 const missing = (value?: string | null) => value?.trim() ? value : 'Pendiente';
@@ -23,11 +27,13 @@ function Pager({ label, page, more, load }: { label: string; page: number; more:
     <Button disabled={!more} aria-label={`Siguiente en ${label}`} onClick={() => load(page + 1)}>Siguiente</Button>
   </Stack>;
 }
-export function InventoryWorkspace({ company, assetId, query, service, onQuery, onAuthorization }: {
+export function InventoryWorkspace({ company, assetId, query, service, onQuery, onAuthorization, onDirty = noop, onPending = noop, onLeave = allow }: {
   company: Company; assetId?: string; query?: AssetQuery; service: InventoryService;
   onQuery: (query: AssetQuery) => void; onAuthorization: (error: ApiError) => void;
+  onDirty?: (dirty: boolean) => void; onPending?: (pending: boolean) => void; onLeave?: () => boolean;
 }) {
-  const [store] = useState(() => new InventoryStore(company.empresaId, service, onAuthorization));
+  const [store] = useState(() => new InventoryStore(company.empresaId, service, onAuthorization, capabilities(company).admin));
+  const [editor, setEditor] = useState<EditMode>();
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const heading = useRef<HTMLHeadingElement>(null);
   const base = '#/empresas/' + company.empresaId + '/activos';
@@ -37,6 +43,18 @@ export function InventoryWorkspace({ company, assetId, query, service, onQuery, 
   }, [store, assetId, query]);
   useEffect(() => { if (state.status !== 'loading') heading.current?.focus(); }, [state.status]);
   const load = (query: AssetQuery) => { onQuery(query); void store.loadList(query); };
+  if (editor && capabilities(company).write) return <Suspense fallback={<Typography role="status">Abriendo formulario…</Typography>}>
+    <AssetEditor companyId={company.empresaId} mode={editor} initial={state} service={service} onDirty={onDirty} onPending={onPending} onAuthorization={onAuthorization}
+      onCancel={() => { if (onLeave()) { onDirty(false); setEditor(undefined); } }}
+      onSaved={(asset, searchCode) => {
+        onDirty(false); setEditor(undefined);
+        if (asset) {
+          const target = base + '/' + asset.activoId;
+          if (window.location.hash === target || assetId === asset.activoId) void store.loadAsset(asset.activoId);
+          else window.location.hash = target;
+        } else { load({ texto: searchCode, pagina: 0 }); if (assetId) window.location.hash = base; }
+      }} />
+  </Suspense>;
   function filter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const values = new FormData(event.currentTarget);
     const estado = String(values.get('estado') || ''); const tipo = String(values.get('tipo') || '');
@@ -49,6 +67,9 @@ export function InventoryWorkspace({ company, assetId, query, service, onQuery, 
       <Typography id="inventory-title" variant="h2" tabIndex={-1} ref={heading}>{assetId ? 'Ficha del activo' : 'Inventario de activos'}</Typography>
       {assetId && <Link href={base}>Volver al inventario</Link>}
       <Button disabled={state.status === 'loading'} onClick={() => { void store.retry(); }}>Actualizar {assetId ? 'ficha' : 'inventario'}</Button>
+      {capabilities(company).write && state.status !== 'loading' && (!assetId
+        ? <Button variant="contained" onClick={() => setEditor('create')}>Crear activo</Button>
+        : state.asset && (state.asset.estado === 'ACTIVO' ? <><Button onClick={() => setEditor('edit')}>Editar activo</Button><Button onClick={() => setEditor('archive')}>Archivar activo</Button></> : <Button onClick={() => setEditor('restore')}>Restaurar activo</Button>))}
     </Stack>
     <Typography color="text.secondary">Consulta de información de la empresa activa. La clasificación confirmada y las revisiones pendientes se muestran por separado.</Typography>
     {!assetId && <Box component="form" aria-label="Filtros del inventario" onSubmit={filter} key={JSON.stringify(state.query)}>
@@ -70,10 +91,10 @@ export function InventoryWorkspace({ company, assetId, query, service, onQuery, 
       </Paper>)}</Stack>
       <Pager label="activos" page={state.list.pagina} more={state.list.hayMas} load={pagina => load({ ...state.query, pagina })} />
     </>}
-    {state.asset && <AssetDetails state={state} zone={company.zonaHoraria} onValuationPage={page => { void store.loadAsset(state.asset!.activoId, page, state.historyPage); }} onHistoryPage={page => { void store.loadAsset(state.asset!.activoId, state.valuationPage, page); }} />}
+    {state.asset && <AssetDetails state={state} canAudit={capabilities(company).admin} zone={company.zonaHoraria} onValuationPage={page => { void store.loadAsset(state.asset!.activoId, page, state.historyPage); }} onHistoryPage={page => { void store.loadAsset(state.asset!.activoId, state.valuationPage, page); }} />}
   </Stack>;
 }
-function AssetDetails({ state, zone, onValuationPage, onHistoryPage }: { state: InventoryState; zone: string; onValuationPage: (page: number) => void; onHistoryPage: (page: number) => void }) {
+function AssetDetails({ state, zone, canAudit, onValuationPage, onHistoryPage }: { state: InventoryState; zone: string; canAudit: boolean; onValuationPage: (page: number) => void; onHistoryPage: (page: number) => void }) {
   const asset = state.asset!;
   const ref = (value?: { nombre: string; estado: 'ACTIVO' | 'ARCHIVADO' }) => value ? `${value.nombre} · ${assetStates[value.estado]}` : 'No disponible';
   return <>
@@ -99,7 +120,7 @@ function AssetDetails({ state, zone, onValuationPage, onHistoryPage }: { state: 
         <Pager label="clasificaciones" page={state.valuations.pagina} more={state.valuations.hayMas} load={onValuationPage} />
       </>}
     </Stack>
-    <Box component="details"><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Ver historial del activo</Typography>
+    {canAudit && <Box component="details"><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Ver historial del activo</Typography>
       <Stack spacing={2} sx={{ mt: 2 }}>
         {state.history && <>
           {!state.history.elementos.length && <Typography>No hay eventos en esta página.</Typography>}
@@ -115,7 +136,7 @@ function AssetDetails({ state, zone, onValuationPage, onHistoryPage }: { state: 
           <Pager label="historial" page={state.history.pagina} more={state.history.hayMas} load={onHistoryPage} />
         </>}
       </Stack>
-    </Box>
+    </Box>}
   </>;
 }
 function Valuation({ value, zone }: { value: ValuationPage['elementos'][number]; zone: string }) {

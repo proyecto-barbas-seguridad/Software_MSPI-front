@@ -52,6 +52,12 @@ Desde una empresa en `/interfaz/`, **Inventario de activos** abre `#/empresas/{u
 
 AE, GS y AU pueden consultar; RA solo no solicita datos de inventario. Los valores C/I/D se leen sin valores predeterminados ni cálculos locales. Los campos faltantes y los condicionales que no aplican conservan sus diferencias. Esta historia no añade formularios de creación, edición, archivo, restauración o clasificación. Las consultas anteriores siguen disponibles en sus URL originales. [Alcance, decisiones y validación de HU-FRONT-010](docs/hu/HU-FRONT-010.md).
 
+## Gestión de activos · HU-FRONT-011
+
+AE y GS pueden crear activos y editar, archivar o restaurar desde su ficha React. El código permanece fijo después del alta. Los formularios ocupan la página y usan selectores paginados de referencias activas, revisión del servidor y motivos para cambios de estado. AU solo consulta; AU+GS conserva las concesiones de GS. El historial se solicita y muestra únicamente con AE, conforme al backend; se corrige la solicitud indiscriminada introducida en HU010.
+
+Se protegen los cambios sin guardar al navegar o salir. La revalidación por foco conserva el formulario, pero retira datos al expirar o cambiar permisos/identidad. Los conflictos no sobrescriben una revisión nueva y una respuesta incierta bloquea otro envío hasta consultar el estado. No hay reintentos automáticos ni almacenamiento del borrador fuera de memoria. Los formularios se cargan bajo demanda; la captura/confirmación de C/I/D continúa pendiente de su historia. [Criterios, decisiones y verificación de HU-FRONT-011](docs/hu/HU-FRONT-011.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

@@ -1,0 +1,3 @@
+contracts/** text eol=lf
+src/shared/api/generated/** text eol=lf
+server/generated-routes.json text eol=lf

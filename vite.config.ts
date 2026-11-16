@@ -8,7 +8,7 @@ export default defineConfig({
   build: { outDir: 'dist', manifest: true, sourcemap: false },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.tsx'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: ['src/test/setup.ts'],
     restoreMocks: true,
   },

@@ -22,8 +22,15 @@ jobs:
         with:
           node-version: '24.21.0'
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tools/contracts/package-lock.json
       - name: Install locked dependencies
-        run: npm ci --ignore-scripts
+        run: |
+          npm ci --ignore-scripts
+          npm ci --prefix tools/contracts --ignore-scripts
+      - name: Check generated API contract
+        run: npm run contracts:check
       - name: Compile React and check TypeScript
         run: npm run build
       - name: Verify UI and HTTPS gateway

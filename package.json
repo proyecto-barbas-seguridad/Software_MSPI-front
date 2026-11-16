@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "contracts:generate": "node tools/contracts/generate.mjs",
+    "contracts:check": "node tools/contracts/generate.mjs --check",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build",
     "test:ui": "vitest run",

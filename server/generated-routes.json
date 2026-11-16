@@ -1,0 +1,3053 @@
+{
+  "version": "1.24.0",
+  "sha256": "5948577673356a8a2248bf115334943bd47a074feba2209742e225f1498a2178",
+  "routes": [
+    {
+      "template": "/api/v1",
+      "method": "GET",
+      "operationId": "consultarVersionApi",
+      "path": {},
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1",
+      "method": "HEAD",
+      "operationId": "consultarCabecerasVersionApi",
+      "path": {},
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/identidad/csrf",
+      "method": "GET",
+      "operationId": "consultarCsrf",
+      "path": {},
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/identidad/sesion",
+      "method": "GET",
+      "operationId": "consultarSesion",
+      "path": {},
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/identidad/sesion",
+      "method": "POST",
+      "operationId": "iniciarSesion",
+      "path": {},
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/identidad/sesion",
+      "method": "DELETE",
+      "operationId": "cerrarSesion",
+      "path": {},
+      "query": {},
+      "body": [],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/identidad/recuperacion",
+      "method": "POST",
+      "operationId": "solicitarRecuperacion",
+      "path": {},
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/identidad/recuperacion/confirmar",
+      "method": "POST",
+      "operationId": "confirmarRecuperacion",
+      "path": {},
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/mis-empresas",
+      "method": "GET",
+      "operationId": "listarMisEmpresas",
+      "path": {},
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/contexto",
+      "method": "GET",
+      "operationId": "consultarContextoEmpresa",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos",
+      "method": "GET",
+      "operationId": "listarActivos",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "estado": {
+          "type": "string",
+          "enum": [
+            "ACTIVO",
+            "ARCHIVADO"
+          ],
+          "required": false
+        },
+        "texto": {
+          "type": "string",
+          "maxLength": 250,
+          "required": false
+        },
+        "tipo": {
+          "type": "string",
+          "enum": [
+            "INFORMACION",
+            "HARDWARE",
+            "SOFTWARE",
+            "SERVICIO",
+            "RECURSO_HUMANO",
+            "INSTALACION",
+            "RED"
+          ],
+          "required": false
+        },
+        "procesoId": {
+          "type": "string",
+          "format": "uuid",
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos",
+      "method": "POST",
+      "operationId": "crearActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}",
+      "method": "GET",
+      "operationId": "consultarActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}",
+      "method": "PUT",
+      "operationId": "editarActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}/archivar",
+      "method": "POST",
+      "operationId": "archivarActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}/restaurar",
+      "method": "POST",
+      "operationId": "restaurarActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}/historial",
+      "method": "GET",
+      "operationId": "consultarHistorialActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones",
+      "method": "GET",
+      "operationId": "listarClasificacionesActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones",
+      "method": "POST",
+      "operationId": "iniciarClasificacionActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones/{valoracionId}",
+      "method": "GET",
+      "operationId": "consultarClasificacionActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "valoracionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones/{valoracionId}",
+      "method": "PUT",
+      "operationId": "editarClasificacionActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "valoracionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones/{valoracionId}/confirmar",
+      "method": "POST",
+      "operationId": "confirmarClasificacionActivo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activoId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "valoracionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/catalogos",
+      "method": "GET",
+      "operationId": "listarCatalogos",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "codigo": {
+          "type": "string",
+          "maxLength": 80,
+          "required": false
+        },
+        "disponibleNuevos": {
+          "type": "boolean",
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/catalogos/{versionId}",
+      "method": "GET",
+      "operationId": "consultarCatalogo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/catalogos/{versionId}/elementos",
+      "method": "GET",
+      "operationId": "listarElementosCatalogo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "tipo": {
+          "type": "string",
+          "enum": [
+            "CONTROL",
+            "CLAUSULA"
+          ],
+          "required": false
+        },
+        "grupo": {
+          "type": "string",
+          "maxLength": 80,
+          "required": false
+        },
+        "codigo": {
+          "type": "string",
+          "maxLength": 80,
+          "required": false
+        },
+        "texto": {
+          "type": "string",
+          "maxLength": 250,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/catalogos/{versionId}/elementos/{elementoId}",
+      "method": "GET",
+      "operationId": "consultarElementoCatalogo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "elementoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/metodologias",
+      "method": "GET",
+      "operationId": "listarMetodologias",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "codigo": {
+          "type": "string",
+          "maxLength": 80,
+          "required": false
+        },
+        "disponibleNuevos": {
+          "type": "boolean",
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/metodologias/{versionId}",
+      "method": "GET",
+      "operationId": "consultarMetodologia",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones",
+      "method": "GET",
+      "operationId": "listarEvaluaciones",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones",
+      "method": "POST",
+      "operationId": "crearEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}",
+      "method": "GET",
+      "operationId": "consultarEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas",
+      "method": "GET",
+      "operationId": "listarRespuestasEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "tipo": {
+          "type": "string",
+          "enum": [
+            "CONTROL",
+            "CLAUSULA"
+          ],
+          "required": false
+        },
+        "grupo": {
+          "type": "string",
+          "maxLength": 80,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}",
+      "method": "PUT",
+      "operationId": "editarRespuestaEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "respuestaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/enviar-revision",
+      "method": "POST",
+      "operationId": "enviarEvaluacionARevision",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/devolver",
+      "method": "POST",
+      "operationId": "devolverEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/cerrar",
+      "method": "POST",
+      "operationId": "cerrarEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/cierre",
+      "method": "GET",
+      "operationId": "consultarCierreEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/correcciones",
+      "method": "POST",
+      "operationId": "corregirEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/confirmar-heredada",
+      "method": "POST",
+      "operationId": "confirmarRespuestaHeredada",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "respuestaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/resultados",
+      "method": "GET",
+      "operationId": "consultarResultadosEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/hallazgos",
+      "method": "GET",
+      "operationId": "listarHallazgosEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "respuestaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/hallazgos",
+      "method": "POST",
+      "operationId": "crearHallazgoEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "respuestaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/hallazgos/{hallazgoId}",
+      "method": "PUT",
+      "operationId": "editarHallazgoEvaluacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "respuestaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "hallazgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/evidencias",
+      "method": "GET",
+      "operationId": "listarEvidenciasRespuesta",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "respuestaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/evidencias",
+      "method": "POST",
+      "operationId": "cargarEvidenciaRespuesta",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "respuestaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "multipart/form-data"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/evidencias/{evidenciaId}/archivo",
+      "method": "GET",
+      "operationId": "descargarEvidenciaRespuesta",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "respuestaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evidenciaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": true
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control",
+      "method": "GET",
+      "operationId": "listarImplementacionesControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control",
+      "method": "POST",
+      "operationId": "crearImplementacionControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}",
+      "method": "GET",
+      "operationId": "consultarImplementacionControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/versiones",
+      "method": "GET",
+      "operationId": "listarVersionesImplementacionControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/versiones/{versionId}/verificaciones",
+      "method": "GET",
+      "operationId": "listarVerificacionesControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/iniciar",
+      "method": "POST",
+      "operationId": "iniciarImplementacionControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/confirmar-aplicacion",
+      "method": "POST",
+      "operationId": "confirmarAplicacionControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/cambiar",
+      "method": "POST",
+      "operationId": "cambiarImplementacionControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/verificar",
+      "method": "POST",
+      "operationId": "verificarImplementacionControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/versiones/{versionId}/evidencias",
+      "method": "GET",
+      "operationId": "listarEvidenciasControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/versiones/{versionId}/evidencias",
+      "method": "POST",
+      "operationId": "cargarEvidenciaControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "multipart/form-data"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/versiones/{versionId}/evidencias/{evidenciaId}/archivo",
+      "method": "GET",
+      "operationId": "descargarEvidenciaControl",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "implementacionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "versionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evidenciaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": true
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/actividad",
+      "method": "GET",
+      "operationId": "consultarActividadEmpresarial",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "desde": {
+          "type": "string",
+          "format": "date-time",
+          "required": false
+        },
+        "hasta": {
+          "type": "string",
+          "format": "date-time",
+          "required": false
+        },
+        "actorId": {
+          "type": "string",
+          "format": "uuid",
+          "required": false
+        },
+        "accion": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{0,79}$",
+          "required": false
+        },
+        "tipoObjeto": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{0,79}$",
+          "required": false
+        },
+        "objetoId": {
+          "type": "string",
+          "format": "uuid",
+          "required": false
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/panel",
+      "method": "GET",
+      "operationId": "consultarPanelEmpresa",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "desde": {
+          "type": "string",
+          "format": "date",
+          "required": false
+        },
+        "hasta": {
+          "type": "string",
+          "format": "date",
+          "required": false
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid",
+          "required": false
+        },
+        "estadoEvaluacion": {
+          "type": "string",
+          "enum": [
+            "BORRADOR",
+            "EN_REVISION",
+            "CERRADA"
+          ],
+          "required": false
+        },
+        "estadoRiesgo": {
+          "type": "string",
+          "enum": [
+            "IDENTIFICADO",
+            "EN_ANALISIS",
+            "EN_TRATAMIENTO",
+            "EN_SEGUIMIENTO",
+            "CERRADO"
+          ],
+          "required": false
+        },
+        "baseRiesgo": {
+          "type": "string",
+          "enum": [
+            "INHERENTE",
+            "RESIDUAL"
+          ],
+          "required": false
+        },
+        "situacionRiesgo": {
+          "type": "string",
+          "enum": [
+            "VIGENTE",
+            "PENDIENTE",
+            "REVISION_REQUERIDA"
+          ],
+          "required": false
+        },
+        "nivelRiesgo": {
+          "type": "string",
+          "enum": [
+            "BAJO",
+            "MODERADO",
+            "ALTO",
+            "EXTREMO"
+          ],
+          "required": false
+        },
+        "probabilidad": {
+          "type": "string",
+          "enum": [
+            "MUY_BAJA",
+            "BAJA",
+            "MEDIA",
+            "ALTA",
+            "MUY_ALTA"
+          ],
+          "required": false
+        },
+        "impacto": {
+          "type": "string",
+          "enum": [
+            "LEVE",
+            "MENOR",
+            "MODERADO",
+            "MAYOR",
+            "CATASTROFICO"
+          ],
+          "required": false
+        },
+        "estadoAccion": {
+          "type": "string",
+          "enum": [
+            "PENDIENTE",
+            "EN_EJECUCION",
+            "EN_REVISION",
+            "COMPLETADA",
+            "CANCELADA"
+          ],
+          "required": false
+        },
+        "vencida": {
+          "type": "boolean",
+          "required": false
+        },
+        "detalle": {
+          "type": "string",
+          "enum": [
+            "EVALUACIONES",
+            "RIESGOS",
+            "ACCIONES"
+          ],
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/reportes/basico",
+      "method": "GET",
+      "operationId": "generarReporteBasicoEmpresa",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "desde": {
+          "type": "string",
+          "format": "date",
+          "required": false
+        },
+        "hasta": {
+          "type": "string",
+          "format": "date",
+          "required": false
+        },
+        "evaluacionId": {
+          "type": "string",
+          "format": "uuid",
+          "required": false
+        },
+        "estadoEvaluacion": {
+          "type": "string",
+          "enum": [
+            "BORRADOR",
+            "EN_REVISION",
+            "CERRADA"
+          ],
+          "required": false
+        },
+        "estadoRiesgo": {
+          "type": "string",
+          "enum": [
+            "IDENTIFICADO",
+            "EN_ANALISIS",
+            "EN_TRATAMIENTO",
+            "EN_SEGUIMIENTO",
+            "CERRADO"
+          ],
+          "required": false
+        },
+        "baseRiesgo": {
+          "type": "string",
+          "enum": [
+            "INHERENTE",
+            "RESIDUAL"
+          ],
+          "required": false
+        },
+        "situacionRiesgo": {
+          "type": "string",
+          "enum": [
+            "VIGENTE",
+            "PENDIENTE",
+            "REVISION_REQUERIDA"
+          ],
+          "required": false
+        },
+        "nivelRiesgo": {
+          "type": "string",
+          "enum": [
+            "BAJO",
+            "MODERADO",
+            "ALTO",
+            "EXTREMO"
+          ],
+          "required": false
+        },
+        "probabilidad": {
+          "type": "string",
+          "enum": [
+            "MUY_BAJA",
+            "BAJA",
+            "MEDIA",
+            "ALTA",
+            "MUY_ALTA"
+          ],
+          "required": false
+        },
+        "impacto": {
+          "type": "string",
+          "enum": [
+            "LEVE",
+            "MENOR",
+            "MODERADO",
+            "MAYOR",
+            "CATASTROFICO"
+          ],
+          "required": false
+        },
+        "estadoAccion": {
+          "type": "string",
+          "enum": [
+            "PENDIENTE",
+            "EN_EJECUCION",
+            "EN_REVISION",
+            "COMPLETADA",
+            "CANCELADA"
+          ],
+          "required": false
+        },
+        "vencida": {
+          "type": "boolean",
+          "required": false
+        },
+        "secciones": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "type": "string",
+            "enum": [
+              "EVALUACIONES",
+              "RIESGOS",
+              "ACCIONES"
+            ]
+          },
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos",
+      "method": "GET",
+      "operationId": "listarRiesgos",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "codigo": {
+          "type": "string",
+          "maxLength": 80,
+          "required": false
+        },
+        "estado": {
+          "type": "string",
+          "enum": [
+            "IDENTIFICADO",
+            "EN_ANALISIS",
+            "EN_TRATAMIENTO",
+            "EN_SEGUIMIENTO",
+            "CERRADO"
+          ],
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos",
+      "method": "POST",
+      "operationId": "registrarRiesgo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}",
+      "method": "GET",
+      "operationId": "consultarRiesgo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}",
+      "method": "PUT",
+      "operationId": "editarRiesgo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/transiciones",
+      "method": "POST",
+      "operationId": "cambiarEstadoRiesgo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/aceptaciones",
+      "method": "GET",
+      "operationId": "listarAceptacionesRiesgo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/aceptaciones",
+      "method": "POST",
+      "operationId": "aprobarAceptacionRiesgo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/riesgos-relacionados",
+      "method": "POST",
+      "operationId": "registrarRiesgoRelacionado",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/iniciar-analisis",
+      "method": "POST",
+      "operationId": "iniciarAnalisisRiesgo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes",
+      "method": "GET",
+      "operationId": "listarValoracionesInherentes",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes",
+      "method": "POST",
+      "operationId": "iniciarValoracionInherente",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes/{valoracionId}",
+      "method": "PUT",
+      "operationId": "editarValoracionInherente",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "valoracionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes/{valoracionId}/confirmar",
+      "method": "POST",
+      "operationId": "confirmarValoracionInherente",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "valoracionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-residuales",
+      "method": "GET",
+      "operationId": "listarValoracionesResiduales",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-residuales",
+      "method": "POST",
+      "operationId": "iniciarValoracionResidual",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-residuales/{residualId}",
+      "method": "PUT",
+      "operationId": "editarValoracionResidual",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "residualId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-residuales/{residualId}/confirmar",
+      "method": "POST",
+      "operationId": "confirmarValoracionResidual",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "residualId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones",
+      "method": "GET",
+      "operationId": "listarAcciones",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones",
+      "method": "POST",
+      "operationId": "crearAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}",
+      "method": "GET",
+      "operationId": "consultarAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}",
+      "method": "PUT",
+      "operationId": "editarAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}/avances",
+      "method": "POST",
+      "operationId": "registrarAvanceAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}/entregas",
+      "method": "POST",
+      "operationId": "entregarAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}/entregas/{entregaId}/decision",
+      "method": "POST",
+      "operationId": "decidirEntregaAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "entregaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}/historial",
+      "method": "GET",
+      "operationId": "listarHistorialAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}/evidencias",
+      "method": "GET",
+      "operationId": "listarEvidenciasAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}/evidencias",
+      "method": "POST",
+      "operationId": "cargarEvidenciaAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "revisionEsperada": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0,
+          "required": true
+        },
+        "descripcion": {
+          "type": "string",
+          "maxLength": 1000,
+          "required": false
+        }
+      },
+      "body": [
+        "multipart/form-data"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}/evidencias/{evidenciaId}/archivo",
+      "method": "GET",
+      "operationId": "descargarEvidenciaAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evidenciaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": true
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}/cancelar",
+      "method": "POST",
+      "operationId": "cancelarAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/acciones/{accionId}/evidencias-contexto/{evidenciaId}/archivo",
+      "method": "GET",
+      "operationId": "descargarEvidenciaContextoAccion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "accionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "evidenciaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": true
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/implementaciones-control",
+      "method": "GET",
+      "operationId": "listarControlesDeRiesgo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/implementaciones-control",
+      "method": "POST",
+      "operationId": "vincularControlARiesgo",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "riesgoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/procesos",
+      "method": "GET",
+      "operationId": "listarProcesos",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "estado": {
+          "type": "string",
+          "enum": [
+            "ACTIVO",
+            "ARCHIVADO"
+          ],
+          "required": false
+        },
+        "responsableId": {
+          "type": "string",
+          "format": "uuid",
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/procesos",
+      "method": "POST",
+      "operationId": "crearProceso",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/procesos/{procesoId}",
+      "method": "GET",
+      "operationId": "consultarProceso",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "procesoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/procesos/{procesoId}",
+      "method": "PUT",
+      "operationId": "editarProceso",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "procesoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/procesos/{procesoId}/archivar",
+      "method": "POST",
+      "operationId": "archivarProceso",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "procesoId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/responsables-negocio",
+      "method": "GET",
+      "operationId": "listarResponsablesNegocio",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        },
+        "estado": {
+          "type": "string",
+          "enum": [
+            "ACTIVO",
+            "ARCHIVADO"
+          ],
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/responsables-negocio",
+      "method": "POST",
+      "operationId": "crearResponsableNegocio",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/responsables-negocio/{responsableId}",
+      "method": "GET",
+      "operationId": "consultarResponsableNegocio",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "responsableId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/responsables-negocio/{responsableId}",
+      "method": "PUT",
+      "operationId": "editarResponsableNegocio",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "responsableId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/responsables-negocio/{responsableId}/archivar",
+      "method": "POST",
+      "operationId": "archivarResponsableNegocio",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "responsableId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/configuracion",
+      "method": "GET",
+      "operationId": "consultarConfiguracion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/configuracion",
+      "method": "PUT",
+      "operationId": "actualizarConfiguracion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/membresias",
+      "method": "GET",
+      "operationId": "listarMembresias",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/responsables",
+      "method": "GET",
+      "operationId": "listarResponsables",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/membresias/{membresiaId}/roles",
+      "method": "PUT",
+      "operationId": "actualizarRoles",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "membresiaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/membresias/{membresiaId}/revocar",
+      "method": "POST",
+      "operationId": "revocarMembresia",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "membresiaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/invitaciones",
+      "method": "GET",
+      "operationId": "listarInvitaciones",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/invitaciones",
+      "method": "POST",
+      "operationId": "emitirInvitacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/empresas/{empresaId}/invitaciones/{invitacionId}/revocar",
+      "method": "POST",
+      "operationId": "revocarInvitacion",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "invitacionId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/invitaciones/aceptar",
+      "method": "POST",
+      "operationId": "aceptarInvitacion",
+      "path": {},
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/invitaciones/alta",
+      "method": "POST",
+      "operationId": "aceptarInvitacionConAlta",
+      "path": {},
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/plataforma/empresas",
+      "method": "GET",
+      "operationId": "listarEmpresasPlataforma",
+      "path": {},
+      "query": {
+        "pagina": {
+          "type": "integer",
+          "minimum": 0,
+          "required": false
+        },
+        "tamano": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "required": false
+        }
+      },
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/plataforma/empresas",
+      "method": "POST",
+      "operationId": "reservarEmpresa",
+      "path": {},
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/plataforma/empresas/{empresaId}",
+      "method": "GET",
+      "operationId": "consultarEmpresaPlataforma",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [],
+      "csrf": false,
+      "download": false
+    },
+    {
+      "template": "/api/v1/plataforma/empresas/{empresaId}/activar",
+      "method": "POST",
+      "operationId": "activarEmpresa",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/plataforma/empresas/{empresaId}/invitacion-inicial/reemitir",
+      "method": "POST",
+      "operationId": "reemitirInvitacionInicial",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/plataforma/empresas/{empresaId}/suspender",
+      "method": "POST",
+      "operationId": "suspenderEmpresa",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    },
+    {
+      "template": "/api/v1/plataforma/empresas/{empresaId}/reactivar",
+      "method": "POST",
+      "operationId": "reactivarEmpresa",
+      "path": {
+        "empresaId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "query": {},
+      "body": [
+        "application/json"
+      ],
+      "csrf": true,
+      "download": false
+    }
+  ]
+}

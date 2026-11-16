@@ -80,6 +80,9 @@ export class WorkspaceStore {
   private section: 'panel' | 'assets' = 'panel';
   private assetId?: string;
   private inventoryQuery: AssetQuery = { estado: 'ACTIVO' };
+  private dirty = false;
+  private draftPending = false;
+  private validation?: AbortController;
   constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService()) {}
   getSnapshot = () => this.state;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
@@ -91,8 +94,18 @@ export class WorkspaceStore {
     this.set(state);
     return { signal: controller.signal, current: () => generation === this.generation && !controller.signal.aborted };
   }
-  dispose() { ++this.generation; this.controller?.abort(); }
+  dispose() { ++this.generation; this.controller?.abort(); this.validation?.abort(); }
+  get draftDirty() { return this.dirty; }
+  setDraftDirty = (dirty: boolean) => { this.dirty = dirty; if (!dirty) this.draftPending = false; };
+  setDraftPending = (pending: boolean) => { this.draftPending = pending; };
+  allowNavigation = () => {
+    if (this.dirty && !window.confirm(this.draftPending
+      ? 'Hay una operación en curso. Salir no garantiza cancelarla en el servidor. ¿Deseas salir?'
+      : 'Hay cambios sin guardar. ¿Deseas descartarlos y salir?')) return false;
+    this.setDraftDirty(false); return true;
+  };
   expire = () => {
+    this.setDraftDirty(false);
     this.dispose(); this.target = undefined; this.page = 0;
     this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel';
     this.set({ status: 'login', notice: 'Tu sesión venció o dejó de estar activa. Vuelve a entrar.' });
@@ -103,6 +116,7 @@ export class WorkspaceStore {
     this.set({ status: login ? 'login' : 'error', identity, error: problem });
   }
   open = async (target?: string, page = 0, panelQuery?: PanelQuery, inventoryRoute?: { assetId?: string }) => {
+    if (!this.allowNavigation()) return;
     const hadIdentity = Boolean(this.state.identity);
     if (target?.toLowerCase() !== this.target?.toLowerCase()) this.inventoryQuery = { estado: 'ACTIVO' };
     this.section = inventoryRoute ? 'assets' : 'panel'; this.assetId = inventoryRoute?.assetId;
@@ -136,8 +150,31 @@ export class WorkspaceStore {
     }
   };
   retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'assets' ? { assetId: this.assetId } : undefined);
+  revalidate = async () => {
+    if (!this.dirty) return this.retry();
+    const previous = this.state;
+    if (!previous.identity || !previous.company) return;
+    this.validation?.abort(); const controller = this.validation = new AbortController(); const generation = this.generation;
+    const current = () => !controller.signal.aborted && generation === this.generation;
+    try {
+      const identity = validIdentity(await this.service.session(controller.signal));
+      const company = validCompany(await this.service.company(previous.company.empresaId, controller.signal));
+      if (!current()) return;
+      if (identity.usuarioId !== previous.identity.usuarioId || company.empresaId !== previous.company.empresaId
+        || [...company.roles].sort().join() !== [...previous.company.roles].sort().join()) {
+        return this.authorizationLost(new ApiError(403, 'AUTORIZACION_MODIFICADA', 'Los permisos cambiaron.'));
+      }
+      this.set({ ...this.state, identity, company, notice: undefined });
+    } catch (error) {
+      if (!current()) return;
+      if (error instanceof ApiError && [401, 403].includes(error.status)) this.authorizationLost(error);
+      else this.set({ ...this.state, notice: 'No pudimos comprobar de nuevo el acceso. Tu borrador sigue solo en esta pestaña; cada escritura requiere autorización del servidor.' });
+      // A transport failure keeps the unsaved buffer. Every write is still authorized by the backend.
+    }
+  };
   rememberInventoryQuery = (companyId: string, query: AssetQuery) => { if (companyId.toLowerCase() === this.target?.toLowerCase()) this.inventoryQuery = query; };
   authorizationLost = (error: ApiError) => {
+    this.setDraftDirty(false);
     this.dispose(); this.fail(error, this.state.identity);
   };
   loadPanel = async (query: PanelQuery = {}) => {
@@ -174,6 +211,7 @@ export class WorkspaceStore {
     } catch (error) { if (task.current()) this.fail(error, undefined, true); }
   };
   logout = async () => {
+    if (!this.allowNavigation()) return;
     const task = this.begin({ status: 'loading' });
     this.target = undefined; this.page = 0;
     this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel';

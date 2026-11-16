@@ -8,6 +8,9 @@ export type HistoryPage = components['schemas']['InventoryHistoryPage'];
 export type Process = components['schemas']['BusinessProcess'];
 export type Responsible = components['schemas']['BusinessResponsible'];
 export type AssetQuery = NonNullable<operations['listarActivos']['parameters']['query']>;
+export type NewAsset = components['schemas']['CreateInventoryAsset'];
+export type EditAsset = components['schemas']['EditInventoryAsset'];
+export type RestoreAsset = components['schemas']['RestoreInventoryAsset'];
 export const assetTypes = { INFORMACION: 'Información', HARDWARE: 'Hardware', SOFTWARE: 'Software', SERVICIO: 'Servicio', RECURSO_HUMANO: 'Recurso humano', INSTALACION: 'Instalación', RED: 'Red' };
 export const assetStates = { ACTIVO: 'Activo', ARCHIVADO: 'Archivado' };
 export const levels = { BAJA: 'Baja', MEDIA: 'Media', ALTA: 'Alta' };
@@ -16,6 +19,12 @@ export const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const count = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar los datos del inventario.');
 export interface InventoryService {
+  create(company: string, body: NewAsset, signal: AbortSignal): Promise<Asset>;
+  edit(company: string, id: string, body: EditAsset, signal: AbortSignal): Promise<Asset>;
+  archive(company: string, id: string, body: components['schemas']['ArchiveInventoryAsset'], signal: AbortSignal): Promise<Asset>;
+  restore(company: string, id: string, body: RestoreAsset, signal: AbortSignal): Promise<Asset>;
+  processes(company: string, page: number, signal: AbortSignal): Promise<components['schemas']['BusinessProcessPage']>;
+  responsibles(company: string, page: number, signal: AbortSignal): Promise<components['schemas']['BusinessResponsiblePage']>;
   list(company: string, query: AssetQuery, signal: AbortSignal): Promise<AssetPage>;
   asset(company: string, id: string, signal: AbortSignal): Promise<Asset>;
   valuations(company: string, id: string, page: number, signal: AbortSignal): Promise<ValuationPage>;
@@ -24,6 +33,12 @@ export interface InventoryService {
   responsible(company: string, id: string, signal: AbortSignal): Promise<Responsible>;
 }
 export const createInventoryService = (client = api): InventoryService => ({
+  create: async (empresaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/activos', { path: { empresaId }, body, signal })).data,
+  edit: async (empresaId, activoId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/activos/{activoId}', { path: { empresaId, activoId }, body, signal })).data,
+  archive: async (empresaId, activoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/activos/{activoId}/archivar', { path: { empresaId, activoId }, body, signal })).data,
+  restore: async (empresaId, activoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/activos/{activoId}/restaurar', { path: { empresaId, activoId }, body, signal })).data,
+  processes: async (empresaId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/procesos', { path: { empresaId }, query: { pagina, tamano: 5, estado: 'ACTIVO' }, signal })).data,
+  responsibles: async (empresaId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/responsables-negocio', { path: { empresaId }, query: { pagina, tamano: 5, estado: 'ACTIVO' }, signal })).data,
   list: async (empresaId, query, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/activos', { path: { empresaId }, query, signal })).data,
   asset: async (empresaId, activoId, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/activos/{activoId}', { path: { empresaId, activoId }, signal })).data,
   valuations: async (empresaId, activoId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/activos/{activoId}/clasificaciones', { path: { empresaId, activoId }, query: { pagina, tamano: 5 }, signal })).data,
@@ -90,7 +105,7 @@ export class InventoryStore {
   private controller?: AbortController;
   private generation = 0;
   private selected?: string;
-  constructor(private company: string, private service: InventoryService, private onAuthorization: (error: ApiError) => void) {}
+  constructor(private company: string, private service: InventoryService, private onAuthorization: (error: ApiError) => void, private canAudit = false) {}
   getSnapshot = () => this.state;
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; };
   private set(state: InventoryState) { this.state = state; this.listeners.forEach(fn => fn()); }
@@ -125,7 +140,7 @@ export class InventoryStore {
       if (!task.current()) return;
       const related = await Promise.allSettled([
         this.service.valuations(this.company, id, valuationPage, task.signal).then(page => validValuations(page, valuationPage, id)),
-        this.service.history(this.company, id, historyPage, task.signal).then(page => validHistory(page, historyPage)),
+        this.canAudit ? this.service.history(this.company, id, historyPage, task.signal).then(page => validHistory(page, historyPage)) : Promise.resolve(undefined),
         this.service.process(this.company, asset.procesoId, task.signal).then(value => {
           if (!value || value.procesoId !== asset.procesoId || typeof value.nombre !== 'string' || !Object.hasOwn(assetStates, value.estado)) throw invalid(); return value;
         }),

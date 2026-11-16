@@ -77,7 +77,8 @@ describe('Inventory and asset pages', () => {
     const api = inventoryService({ asset: vi.fn().mockResolvedValue({ ...asset, estado: 'ARCHIVADO' }), valuations: vi.fn().mockResolvedValue({ elementos: [], pagina: 0, tamano: 5, hayMas: false }) });
     mount(api, asset.activoId); await screen.findByText(/Este activo está archivado/);
     expect(screen.getByText(/No hay clasificaciones en esta página/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Editar|Clasificar|Archivar|Restaurar/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Editar|Clasificar|Archivar/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Restaurar activo' })).toBeInTheDocument();
   });
   it('reports partial reference failures without hiding the asset or inventing an owner', async () => {
     const api = inventoryService({ responsible: vi.fn().mockRejectedValue(new ApiError(503, 'ERROR', 'Error.', [], 'ref-soporte')) });
@@ -95,7 +96,7 @@ describe('Inventory and asset pages', () => {
     expect(store.getSnapshot().asset).toBeUndefined(); expect(api.valuations).not.toHaveBeenCalled();
   });
   it.each([401, 403])('propagates %s from any auxiliary query and withdraws all data', async status => {
-    const authorization = vi.fn(); const store = new InventoryStore(company.empresaId, inventoryService({ history: vi.fn().mockRejectedValue(new ApiError(status, 'DENEGADO', 'Error.')) }), authorization);
+    const authorization = vi.fn(); const store = new InventoryStore(company.empresaId, inventoryService({ history: vi.fn().mockRejectedValue(new ApiError(status, 'DENEGADO', 'Error.')) }), authorization, true);
     await store.loadAsset(asset.activoId); expect(authorization).toHaveBeenCalledWith(expect.objectContaining({ status }));
     expect(store.getSnapshot().asset).toBeUndefined(); expect(store.getSnapshot().valuations).toBeUndefined();
   });

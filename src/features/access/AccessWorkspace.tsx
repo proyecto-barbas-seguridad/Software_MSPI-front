@@ -20,30 +20,47 @@ export function RoleChips({ company }: { company: Company }) {
 export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const heading = useRef<HTMLHeadingElement>(null);
+  const acceptedUrl = useRef(window.location.href);
   const [showPassword, setShowPassword] = useState(false);
   const [waitUntil, setWaitUntil] = useState(0);
   const [now, setNow] = useState(Date.now());
   const remaining = Math.max(0, Math.ceil((waitUntil - now) / 1000));
 
   useEffect(() => {
-    const route = () => { const location = routeFromHash(); void store.open(location.target, 0, undefined, location.inventoryRoute); };
-    const revalidate = () => { if (document.visibilityState === 'visible' && store.getSnapshot().identity) void store.retry(); };
+    const route = () => {
+      if (!store.allowNavigation()) { window.history.replaceState(null, '', acceptedUrl.current); return; }
+      acceptedUrl.current = window.location.href;
+      const location = routeFromHash(); void store.open(location.target, 0, undefined, location.inventoryRoute);
+    };
+    const revalidate = () => { if (document.visibilityState === 'visible' && store.getSnapshot().identity) void store.revalidate(); };
+    const leave = (event: BeforeUnloadEvent) => { if (store.draftDirty) { event.preventDefault(); event.returnValue = ''; } };
+    const link = (event: MouseEvent) => {
+      if (event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || !(event.target instanceof Element)) return;
+      const anchor = event.target.closest<HTMLAnchorElement>('a[href]');
+      if (anchor && anchor.hash !== '#contenido-react' && anchor.href !== window.location.href && !store.allowNavigation()) {
+        event.preventDefault(); event.stopPropagation();
+      }
+    };
     route();
     window.addEventListener('hashchange', route);
     window.addEventListener('focus', revalidate);
     window.addEventListener('pageshow', revalidate);
     document.addEventListener('visibilitychange', revalidate);
+    window.addEventListener('beforeunload', leave);
+    document.addEventListener('click', link, true);
     return () => {
       store.dispose();
       window.removeEventListener('hashchange', route);
       window.removeEventListener('focus', revalidate);
       window.removeEventListener('pageshow', revalidate);
       document.removeEventListener('visibilitychange', revalidate);
+      window.removeEventListener('beforeunload', leave);
+      document.removeEventListener('click', link, true);
     };
   }, [store]);
   useEffect(() => {
-    if (state.status !== 'loading') heading.current?.focus();
-    if (state.status === 'login') window.history.replaceState(null, '', '#/empresas');
+    if (state.status !== 'loading' && !store.draftDirty) heading.current?.focus();
+    if (state.status === 'login') { window.history.replaceState(null, '', '#/empresas'); acceptedUrl.current = window.location.href; }
     const expires = state.identity && Date.parse(state.identity.expiraEn);
     if (!expires) return;
     const timer = window.setTimeout(store.expire, Math.max(0, Math.min(expires - Date.now(), 2147483647)));
@@ -60,8 +77,10 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
     return () => window.clearInterval(timer);
   }, [remaining]);
   function navigate(company?: Company) {
+    if (!store.allowNavigation()) return;
     const hash = company ? '#/empresas/' + company.empresaId : '#/empresas';
     if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+    acceptedUrl.current = window.location.href;
     void store.open(company?.empresaId);
   }
   async function login(event: FormEvent<HTMLFormElement>) {
@@ -144,7 +163,8 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
       {state.section !== 'assets' && <CompanyEntry company={state.company} />}
       {capabilities(state.company).read && (state.section === 'assets'
         ? <InventoryWorkspace key={state.company.empresaId} company={state.company} assetId={state.assetId} query={state.inventoryQuery} service={store.inventory}
-            onQuery={query => store.rememberInventoryQuery(state.company!.empresaId, query)} onAuthorization={store.authorizationLost} />
+            onQuery={query => store.rememberInventoryQuery(state.company!.empresaId, query)} onAuthorization={store.authorizationLost}
+            onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation} />
         : <CompanyDashboard state={state} onLoad={query => { void store.loadPanel(query); }} />)}
     </>}
   </Stack>;

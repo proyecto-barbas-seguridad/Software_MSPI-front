@@ -58,6 +58,12 @@ AE y GS pueden crear activos y editar, archivar o restaurar desde su ficha React
 
 Se protegen los cambios sin guardar al navegar o salir. La revalidación por foco conserva el formulario, pero retira datos al expirar o cambiar permisos/identidad. Los conflictos no sobrescriben una revisión nueva y una respuesta incierta bloquea otro envío hasta consultar el estado. No hay reintentos automáticos ni almacenamiento del borrador fuera de memoria. Los formularios se cargan bajo demanda; la captura/confirmación de C/I/D continúa pendiente de su historia. [Criterios, decisiones y verificación de HU-FRONT-011](docs/hu/HU-FRONT-011.md).
 
+## Clasificación de activos · HU-FRONT-012
+
+AE y GS pueden abrir **Clasificar activo** en una ficha activa. El formulario consulta los datos actuales, continúa el borrador existente o copia las entradas reales de la versión vigente para una nueva revisión con motivo. Sin versión previa, C/I/D y declaraciones ausentes permanecen pendientes; no se proponen valores 5/3/5.
+
+**Guardar borrador** permite campos pendientes coherentes. **Confirmar versión guardada** es un paso explícito, usa la revisión del servidor y publica la criticidad calculada por el backend. Los datos personales condicionales y «No aplica» se diferencian de faltantes; las versiones anteriores se conservan. Incluye protección de cambios, conflictos y resultados inciertos, y carga del formulario bajo demanda. [Criterios, decisiones y verificación de HU-FRONT-012](docs/hu/HU-FRONT-012.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

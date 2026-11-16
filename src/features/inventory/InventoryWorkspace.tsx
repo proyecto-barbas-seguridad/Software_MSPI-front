@@ -9,6 +9,7 @@ import { assetStates, assetTypes, InventoryStore, levels, personalTypes } from '
 import type { AssetQuery, HistoryPage, InventoryService, InventoryState, ValuationPage } from './inventory';
 import type { EditMode } from './AssetEditor';
 const AssetEditor = lazy(() => import('./AssetEditor'));
+const ClassificationEditor = lazy(() => import('./ClassificationEditor'));
 const noop = () => {};
 const allow = () => true;
 
@@ -34,6 +35,7 @@ export function InventoryWorkspace({ company, assetId, query, service, onQuery, 
 }) {
   const [store] = useState(() => new InventoryStore(company.empresaId, service, onAuthorization, capabilities(company).admin));
   const [editor, setEditor] = useState<EditMode>();
+  const [classifying, setClassifying] = useState(false);
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const heading = useRef<HTMLHeadingElement>(null);
   const base = '#/empresas/' + company.empresaId + '/activos';
@@ -43,6 +45,11 @@ export function InventoryWorkspace({ company, assetId, query, service, onQuery, 
   }, [store, assetId, query]);
   useEffect(() => { if (state.status !== 'loading') heading.current?.focus(); }, [state.status]);
   const load = (query: AssetQuery) => { onQuery(query); void store.loadList(query); };
+  if (classifying && assetId && capabilities(company).write) return <Suspense fallback={<Typography role="status">Abriendo clasificación…</Typography>}>
+    <ClassificationEditor companyId={company.empresaId} assetId={assetId} service={service} onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending}
+      onCancel={() => { if (onLeave()) { onDirty(false); setClassifying(false); void store.loadAsset(assetId); } }}
+      onDone={() => { onDirty(false); setClassifying(false); void store.loadAsset(assetId); }} />
+  </Suspense>;
   if (editor && capabilities(company).write) return <Suspense fallback={<Typography role="status">Abriendo formulario…</Typography>}>
     <AssetEditor companyId={company.empresaId} mode={editor} initial={state} service={service} onDirty={onDirty} onPending={onPending} onAuthorization={onAuthorization}
       onCancel={() => { if (onLeave()) { onDirty(false); setEditor(undefined); } }}
@@ -69,7 +76,7 @@ export function InventoryWorkspace({ company, assetId, query, service, onQuery, 
       <Button disabled={state.status === 'loading'} onClick={() => { void store.retry(); }}>Actualizar {assetId ? 'ficha' : 'inventario'}</Button>
       {capabilities(company).write && state.status !== 'loading' && (!assetId
         ? <Button variant="contained" onClick={() => setEditor('create')}>Crear activo</Button>
-        : state.asset && (state.asset.estado === 'ACTIVO' ? <><Button onClick={() => setEditor('edit')}>Editar activo</Button><Button onClick={() => setEditor('archive')}>Archivar activo</Button></> : <Button onClick={() => setEditor('restore')}>Restaurar activo</Button>))}
+        : state.asset && (state.asset.estado === 'ACTIVO' ? <><Button onClick={() => setEditor('edit')}>Editar activo</Button><Button onClick={() => setClassifying(true)}>Clasificar activo</Button><Button onClick={() => setEditor('archive')}>Archivar activo</Button></> : <Button onClick={() => setEditor('restore')}>Restaurar activo</Button>))}
     </Stack>
     <Typography color="text.secondary">Consulta de información de la empresa activa. La clasificación confirmada y las revisiones pendientes se muestran por separado.</Typography>
     {!assetId && <Box component="form" aria-label="Filtros del inventario" onSubmit={filter} key={JSON.stringify(state.query)}>

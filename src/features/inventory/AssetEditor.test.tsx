@@ -119,6 +119,7 @@ describe('Asset mutations', () => {
     await screen.findByRole('article', { name: 'Clasificación versión 1' }); expect(api.history).not.toHaveBeenCalled();
     expect(screen.queryByText('Ver historial del activo')).not.toBeInTheDocument();
     expect(Boolean(screen.queryByRole('button', { name: 'Editar activo' }))).toBe(role === 'GS');
+    expect(Boolean(screen.queryByRole('button', { name: 'Clasificar activo' }))).toBe(role === 'GS');
   });
   it('paginates reference options without losing the selected label', async () => {
     const second = '00000000-0000-0000-0000-000000000055';

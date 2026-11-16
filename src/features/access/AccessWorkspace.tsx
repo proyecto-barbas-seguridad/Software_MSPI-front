@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { FormEvent } from 'react';
 import { accessMessage, capabilities, roleNames, WorkspaceStore } from './workspace';
 import type { Company } from './workspace';
+import { CompanyDashboard } from '../dashboard/CompanyDashboard';
 
 function targetFromHash() {
   const hash = window.location.hash;
@@ -139,6 +140,7 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
         <Button sx={{ alignSelf: 'flex-start' }} onClick={() => navigate()}>Cambiar empresa</Button>
       </Stack>
       <CompanyEntry company={state.company} />
+      {capabilities(state.company).read && <CompanyDashboard state={state} onLoad={query => { void store.loadPanel(query); }} />}
     </>}
   </Stack>;
 }

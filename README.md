@@ -38,6 +38,14 @@ Al cambiar de empresa, revalidar el acceso o cerrar sesión, se retiran los dato
 
 Los enlaces de consulta a resumen, activos y evaluaciones continúan en las pantallas existentes; tareas, administración empresarial/plataforma, invitaciones y recuperación se implementarán con sus respectivas historias. [Criterios, decisiones y límites de HU-FRONT-008](docs/hu/HU-FRONT-008.md).
 
+## Panel empresarial React · HU-FRONT-009
+
+Al entrar a una empresa desde `/interfaz/`, AE, GS y AU reciben el panel del backend: agregados por estado, riesgos por situación/nivel, matriz vigente y acciones vencidas separadas del estado de ejecución. La navegación lateral identifica **Panel**. RA solo no solicita ese endpoint.
+
+Los filtros de fecha inclusiva y base de riesgo se aplican en el servidor. El detalle de evaluaciones, riesgos o acciones se consulta de cinco en cinco con los mismos filtros. En la sección de evaluaciones se destacan los resultados de la primera evaluación de la página, con revisión y separación de controles, dominios y cláusulas. No se recalculan puntajes ni niveles en el navegador.
+
+El corte del panel, el alcance de cada fecha y la revisión independiente de resultados quedan visibles. Cero, pendiente, no aplica y provisional conservan su significado; los fallos no producen ceros ficticios. No se muestran totales de activos ni enlaces a páginas todavía inexistentes. [Criterios, decisiones y verificación de HU-FRONT-009](docs/hu/HU-FRONT-009.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

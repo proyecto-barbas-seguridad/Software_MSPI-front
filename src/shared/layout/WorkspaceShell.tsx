@@ -2,10 +2,11 @@ import { Box, Button, Divider, Link, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
-export function WorkspaceShell({ children, mode, onToggleMode }: {
+export function WorkspaceShell({ children, mode, onToggleMode, panelHref }: {
   children: ReactNode;
   mode: 'light' | 'dark';
   onToggleMode: () => void;
+  panelHref?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return <Box>
@@ -27,6 +28,7 @@ export function WorkspaceShell({ children, mode, onToggleMode }: {
       <Box component="aside" id="navegacion-react" sx={{ display: { xs: menuOpen ? 'block' : 'none', md: 'block' },
         bgcolor: 'background.paper', borderRight: { md: 1 }, borderBottom: { xs: 1, md: 0 }, borderColor: 'divider', p: 2 }}>
         <Stack component="nav" aria-label="Navegación principal" spacing={1}>
+          {panelHref && <Button component="a" href={panelHref} aria-current="page" variant="contained" onClick={() => setMenuOpen(false)}>Panel</Button>}
           <Button component="a" href="/interfaz/#/empresas" variant="outlined" onClick={() => setMenuOpen(false)}>Mis empresas</Button>
         </Stack>
         <Divider sx={{ my: 3 }} />

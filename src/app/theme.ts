@@ -18,6 +18,8 @@ export function panoramaTheme(mode: 'light' | 'dark') {
     },
     shape: { borderRadius: 10 },
     components: {
+      MuiAlert: { defaultProps: { variant: 'outlined' } },
+      MuiPaper: { defaultProps: { variant: 'outlined' } },
       MuiButtonBase: { defaultProps: { disableRipple: true } },
       MuiButton: { styleOverrides: { root: { minHeight: 44 } } },
       MuiCssBaseline: { styleOverrides: {

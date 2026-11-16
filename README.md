@@ -30,6 +30,14 @@ El gateway permite solo rutas, métodos y consultas declarados en ese contrato. 
 
 Después de actualizar de forma explícita `contracts/backend-v1.yaml` y su procedencia en `contracts/source.json`, ejecutar `npm run contracts:generate` y `npm run contracts:check`. La herramienta tiene su propio lockfile y TypeScript 5 compatible con el generador, sin cambiar TypeScript 7 de la aplicación. CI comprueba que los tipos y las reglas generadas coincidan con la copia versionada. [Alcance y validación de HU-FRONT-007](docs/hu/HU-FRONT-007.md).
 
+## Sesión y contexto React · HU-FRONT-008
+
+Abrir `https://localhost:6443/interfaz/` en el despliegue HTTPS. Incluye inicio/cierre de sesión, empresas paginadas de diez en diez y contexto con los roles combinados de la membresía vigente. El selector y el contexto usan `#/empresas` y `#/empresas/{uuid}` dentro de esa entrada. No es un cambio de empresa persistido en el servidor ni en almacenamiento local.
+
+Al cambiar de empresa, revalidar el acceso o cerrar sesión, se retiran los datos privados y se cancelan/descartan respuestas anteriores. La sesión se revalida al recuperar el foco y vence según `expiraEn`. Un 401 vuelve al acceso; una pérdida de permisos retira el contexto y ofrece volver al selector. RA solo no recibe enlaces a inventario o evaluaciones; AU solo se presenta como lector y AU+GS conserva gestión. El privilegio AP no se infiere del contrato de sesión.
+
+Los enlaces de consulta a resumen, activos y evaluaciones continúan en las pantallas existentes; tareas, administración empresarial/plataforma, invitaciones y recuperación se implementarán con sus respectivas historias. [Criterios, decisiones y límites de HU-FRONT-008](docs/hu/HU-FRONT-008.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

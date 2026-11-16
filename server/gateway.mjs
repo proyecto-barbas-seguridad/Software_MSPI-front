@@ -3,32 +3,20 @@ import { Agent, createServer, request } from 'node:https';
 import { pipeline } from 'node:stream';
 import { randomBytes } from 'node:crypto';
 import { loadUiAssets } from './ui-assets.mjs';
+import { contractRoute } from './contract-policy.mjs';
 
 const uiFiles = loadUiAssets();
 
 const uuid = '[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}';
 const companyRoute = new RegExp('^/empresas/' + uuid + '$');
-const contextRoute = new RegExp('^/api/v1/empresas/' + uuid + '/contexto$');
 const evaluationListPath = '/empresas/' + uuid + '/evaluaciones';
 const evaluationPath = evaluationListPath + '/' + uuid;
-const evidencePath = evaluationPath + '/respuestas/' + uuid + '/evidencias';
 const evaluationView = new RegExp('^' + evaluationListPath + '(?:/' + uuid + ')?$');
-const evaluationDetail = new RegExp('^/api/v1' + evaluationPath + '(?:/resultados)?$');
-const pagedEvaluations = new RegExp('^/api/v1(?:' + evaluationListPath + '|' + evaluationPath + '/respuestas|' + evidencePath + ')$');
-const evidenceDownload = new RegExp('^/api/v1' + evidencePath + '/' + uuid + '/archivo$');
 const assetPath = '/empresas/' + uuid + '/activos';
 const assetView = new RegExp('^' + assetPath + '(?:/' + uuid + ')?$');
-const assetIndex = new RegExp('^/api/v1' + assetPath + '$');
-const assetClassifications = new RegExp('^/api/v1' + assetPath + '/' + uuid + '/clasificaciones$');
-const assetDetail = new RegExp('^/api/v1(?:' + assetPath + '|/empresas/' + uuid +
-  '/(?:procesos|responsables-negocio))/' + uuid + '$');
-const paging = 'pagina=(?:0|[1-9][0-9]{0,7})&tamano=20';
-const pageQuery = new RegExp('^' + paging + '$');
-const assetQuery = new RegExp('^' + paging + '(?:&estado=(?:ACTIVO|ARCHIVADO))?' +
-  '(?:&tipo=(?:INFORMACION|HARDWARE|SOFTWARE|SERVICIO|RECURSO_HUMANO|INSTALACION|RED))?' +
-  '(?:&texto=((?:[a-zA-Z0-9*_.+-]|%[0-9a-fA-F]{2}){1,750}))?$');
 const evidenceTypes = ['application/pdf', 'image/png', 'image/jpeg'];
-const maxBody = 16 * 1024;
+const jsonLimit = 65536;
+const uploadLimit = 10016384;
 const securityHeaders = {
   'Cache-Control': 'no-store',
   'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; object-src 'none'",
@@ -50,24 +38,9 @@ export function route(method, target) {
   if (typeof target !== 'string' || /[^a-zA-Z0-9_./?=&*+%-]/.test(target)) return;
   const [path, query, extra] = target.split('?');
   if (extra !== undefined || !/^\/[a-zA-Z0-9_./-]*$/.test(path) || path.includes('//')) return;
-  if (method === 'GET' && assetIndex.test(path)) {
-    if (query === undefined || validAssetQuery(query)) return { upstream: target };
-    return;
-  }
-  if (method === 'GET' && (path === '/api/v1/mis-empresas' || pagedEvaluations.test(path) ||
-      assetClassifications.test(path))) {
-    if (query === undefined || pageQuery.test(query)) return { upstream: target };
-    return;
-  }
+  const api = contractRoute(method, target);
+  if (api) return api;
   if (query !== undefined) return;
-  if (method === 'GET' && evidenceDownload.test(path)) return { upstream: path, download: true };
-  if (path === '/api/v1/identidad/sesion' && ['GET', 'POST', 'DELETE'].includes(method)) {
-    return { upstream: path };
-  }
-  if (method === 'GET' && (path === '/api/v1/identidad/csrf' || contextRoute.test(path) ||
-      evaluationDetail.test(path) || assetDetail.test(path))) {
-    return { upstream: path };
-  }
   if (['GET', 'HEAD'].includes(method)) {
     if (path === '/interfaz' || path === '/interfaz/') return { ui: 'index.html' };
     if (path.startsWith('/interfaz/') && uiFiles.has(path.slice('/interfaz/'.length))) {
@@ -80,18 +53,6 @@ export function route(method, target) {
   }
 }
 
-function validAssetQuery(query) {
-  const match = assetQuery.exec(query);
-  if (!match) return false;
-  if (!match[1]) return true;
-  try {
-    const value = decodeURIComponent(match[1].replace(/\+/g, ' '));
-    return value.length <= 250 && !/\p{Cc}/u.test(value);
-  } catch {
-    return false;
-  }
-}
-
 function finish(res, status, headers, body) {
   if (res.destroyed || res.headersSent) return;
   res.writeHead(status, { ...securityHeaders, ...headers }).end(body);
@@ -101,13 +62,13 @@ function reject(res, status, code) {
   finish(res, status, { 'Content-Type': 'application/problem+json', Connection: 'close' }, JSON.stringify({ code }));
 }
 
-async function bodyOf(req) {
+async function bodyOf(req, limit) {
   const parts = [];
   let size = 0;
   // Keep the socket open long enough to send 413 on chunked overflow.
   for await (const chunk of req.iterator({ destroyOnReturn: false })) {
     size += chunk.length;
-    if (size > maxBody) return null;
+    if (size > limit || parts.length >= 16384) return null;
     parts.push(chunk);
   }
   return Buffer.concat(parts, size);
@@ -115,18 +76,19 @@ async function bodyOf(req) {
 
 export function gateway({ tls, ca, origin, apiHost = 'mspi-api', apiPort = 8443 }) {
   const authority = new URL(origin).host;
+  let uploads = 0;
   const files = new Map(['index.html', ...Array.from(assets.values(), ([file]) => file)]
     .map(file => [file, readFileSync(new URL('../public/' + file, import.meta.url))]));
   const agent = new Agent({ ca, servername: 'localhost', minVersion: 'TLSv1.2', maxSockets: 24 });
   const server = createServer({ ...tls, minVersion: 'TLSv1.2', maxHeaderSize: 8192,
-    handshakeTimeout: 6000, headersTimeout: 6000, requestTimeout: 10000,
+    handshakeTimeout: 6000, headersTimeout: 6000, requestTimeout: 30000,
     keepAliveTimeout: 4000, connectionsCheckingInterval: 1000 },
   async (req, res) => {
     if (req.headers.host !== authority) return reject(res, 421, 'ORIGEN_INVALIDO');
     const selected = route(req.method, req.url);
     if (!selected) return reject(res, 404, 'NO_ENCONTRADO');
     const hasBody = req.headers['transfer-encoding'] || Number(req.headers['content-length'] || 0) > 0;
-    if (req.method !== 'POST' && hasBody) return reject(res, 400, 'CUERPO_INESPERADO');
+    if (!selected.body && hasBody) return reject(res, 400, 'CUERPO_INESPERADO');
 
     if (selected.ui) {
       const file = uiFiles.get(selected.ui);
@@ -150,7 +112,7 @@ export function gateway({ tls, ca, origin, apiHost = 'mspi-api', apiPort = 8443 
         req.method === 'HEAD' ? undefined : content);
     }
 
-    if (['POST', 'DELETE'].includes(req.method) && req.headers.origin !== origin) {
+    if (['POST', 'PUT', 'DELETE'].includes(req.method) && req.headers.origin !== origin) {
       return reject(res, 403, 'ORIGEN_INVALIDO');
     }
 
@@ -159,14 +121,26 @@ export function gateway({ tls, ca, origin, apiHost = 'mspi-api', apiPort = 8443 
     if (selected.download) headers.Accept = [...evidenceTypes, headers.Accept].join(', ');
     if (req.headers.cookie) headers.Cookie = req.headers.cookie;
     if (req.headers['x-csrf-token']) headers['X-CSRF-TOKEN'] = req.headers['x-csrf-token'];
-    if (req.method === 'POST') {
-      if (req.headers['content-type']?.split(';')[0].trim().toLowerCase() !== 'application/json') {
+    if (selected.body) {
+      const contentType = req.headers['content-type'] || '';
+      const multipart = selected.body === 'multipart';
+      const boundary = /^multipart\/form-data;\s*boundary=(?:"[a-zA-Z0-9'()+_,.\/:=? -]{1,70}"|[a-zA-Z0-9'()+_,.\/:=?-]{1,70})$/i;
+      if (multipart ? !boundary.test(contentType)
+        : contentType.split(';')[0].trim().toLowerCase() !== 'application/json') {
         return reject(res, 415, 'TIPO_CONTENIDO_NO_ADMITIDO');
       }
-      if (Number(req.headers['content-length']) > maxBody) return reject(res, 413, 'CARGA_DEMASIADO_GRANDE');
-      try { body = await bodyOf(req); } catch { return; }
-      if (!body) return reject(res, 413, 'CARGA_DEMASIADO_GRANDE');
-      headers['Content-Type'] = 'application/json';
+      const limit = multipart ? uploadLimit : jsonLimit;
+      if (Number(req.headers['content-length']) > limit) return reject(res, 413, 'CARGA_DEMASIADO_GRANDE');
+      if (multipart) {
+        if (uploads >= 2) return finish(res, 503, { 'Content-Type': 'application/problem+json', 'Retry-After': '1', Connection: 'close' }, JSON.stringify({ code: 'CAPACIDAD_AGOTADA' }));
+        uploads++;
+        let released = false;
+        res.once('close', () => { if (!released) { released = true; uploads--; } });
+      }
+      try { body = await bodyOf(req, limit); } catch { return; }
+      if (body === null) return reject(res, 413, 'CARGA_DEMASIADO_GRANDE');
+      if (body.length === 0) return reject(res, 400, 'CUERPO_REQUERIDO');
+      headers['Content-Type'] = multipart ? contentType : 'application/json';
       headers['Content-Length'] = body.length;
     }
 
@@ -194,7 +168,7 @@ export function gateway({ tls, ca, origin, apiHost = 'mspi-api', apiPort = 8443 
       res.writeHead(reply.statusCode, { ...securityHeaders, ...forwarded });
       pipeline(reply, res, () => {});
     });
-    const deadline = setTimeout(() => upstream.destroy(), 8000);
+    const deadline = setTimeout(() => upstream.destroy(), selected.body === 'multipart' ? 30000 : 8000);
     upstream.once('close', () => clearTimeout(deadline));
     upstream.on('error', () => reject(res, 502, 'API_NO_DISPONIBLE'));
     res.on('close', () => { if (!res.writableEnded) upstream.destroy(); });

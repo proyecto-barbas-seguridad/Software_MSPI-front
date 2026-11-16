@@ -2,6 +2,7 @@
 !Dockerfile
 !server/
 !server/*.mjs
+!server/*.json
 !public/
 !public/*
 !package.json

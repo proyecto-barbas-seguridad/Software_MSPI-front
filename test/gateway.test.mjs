@@ -22,6 +22,9 @@ let api;
 let tls;
 let apiTls;
 let last;
+let nextReply;
+let heldUploads;
+let uploadArrived;
 
 function certificate(name) {
   const cert = join(directory, name + '.pem');
@@ -62,6 +65,13 @@ before(async () => {
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     last = { path: req.url, method: req.method, headers: req.headers, body: Buffer.concat(chunks).toString() };
+    if (heldUploads) { heldUploads.push(res); uploadArrived?.(); return; }
+    if (nextReply) {
+      const reply = nextReply;
+      nextReply = null;
+      res.writeHead(reply.status, reply.headers);
+      return res.end(JSON.stringify(reply.body));
+    }
     if (req.url === file || req.url === unsafeFile || req.url === inlineFile) {
       res.writeHead(200, { 'Content-Type': req.url === unsafeFile ? 'text/html' : 'application/pdf',
         'Content-Disposition': req.url === inlineFile ? 'inline' : attachment });
@@ -87,7 +97,7 @@ test('routes only explicitly permitted endpoints', () => {
     { upstream: '/api/v1/mis-empresas?pagina=1&tamano=20' });
   for (const path of ['/api/v1/identidad/sesion?contrasena=ignored', '/actuator/health',
     '/api/v1/empresas/../identidad/sesion', '/api/v1/identidad/%73esion', '//mspi-api/',
-    '/api/v1/mis-empresas?pagina=0&tamano=100', 'https://outside.example/']) {
+    '/api/v1/mis-empresas?pagina=0&tamano=101', 'https://outside.example/']) {
     assert.equal(route('GET', path), undefined, path);
   }
   assert.equal(route('PUT', '/api/v1/identidad/sesion'), undefined);
@@ -127,7 +137,7 @@ test('publishes only declared build files and denies source, manifest and traver
   for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) assert.equal(route(method, '/interfaz/'), undefined);
 });
 
-test('exposes only the read-only evaluation routes with bounded pagination', () => {
+test('preserves evaluation reads with contract pagination and rejects undeclared operations', () => {
   const company = 'e01b03ee-a2d7-4b42-a76e-e307737a3300';
   const evaluation = '3afedfc1-4cc8-484b-b513-e7990a701bab';
   const list = '/empresas/' + company + '/evaluaciones';
@@ -142,7 +152,7 @@ test('exposes only the read-only evaluation routes with bounded pagination', () 
     for (const method of ['GET', 'HEAD']) assert.equal(route(method, path).asset[0], 'index.html');
   }
   for (const path of ['/api/v1' + detail + page, answers + '?pagina=-1&tamano=20',
-    answers + '?pagina=0&tamano=21', answers + page + '&tamano=20', answers + page + '&grupo=a',
+    answers + '?pagina=0&tamano=101', answers + page + '&tamano=20', answers + page + '&grupoDesconocido=a',
     answers + '/' + evaluation, '/api/v1' + detail + '/resultados' + page,
     '/api/v1' + detail + '/resultados/extra', '/api/v1' + list + '/bad-id']) {
     assert.equal(route('GET', path), undefined, path);
@@ -153,11 +163,13 @@ test('limits evidence to paged listings and downloads of a specific attachment',
   const paged = evidenceList + '?pagina=1&tamano=20';
   assert.deepEqual(route('GET', paged), { upstream: paged });
   assert.deepEqual(route('GET', file), { upstream: file, download: true });
-  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE', 'HEAD']) {
+  assert.equal(route('POST', evidenceList).body, 'multipart');
+  assert.equal(route('POST', file), undefined);
+  for (const method of ['PUT', 'PATCH', 'DELETE', 'HEAD']) {
     assert.equal(route(method, evidenceList), undefined);
     assert.equal(route(method, file), undefined);
   }
-  for (const path of [file + '?pagina=0&tamano=20', evidenceList + '?tamano=100',
+  for (const path of [file + '?pagina=0&tamano=20', evidenceList + '?tamano=101',
     file.replace(evaluationId + '/archivo', 'bad-id/archivo'), evidenceList + '/archivo']) {
     assert.equal(route('GET', path), undefined);
   }
@@ -172,16 +184,16 @@ test('allows asset reads and validates the encoded search only on the asset list
   for (const path of [list + query, detail, detail + '/clasificaciones' + page,
     company + '/procesos/' + evaluationId, company + '/responsables-negocio/' + evaluationId]) {
     assert.deepEqual(route('GET', path), { upstream: path });
-    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) assert.equal(route(method, path), undefined);
+    for (const method of ['PATCH', 'DELETE']) assert.equal(route(method, path), undefined);
   }
   for (const path of [list, detail]) {
     assert.equal(route('HEAD', path.replace('/api/v1', '')).asset[0], 'index.html');
   }
   for (const path of [list + query + '&texto=duplicado', list + page + '&estado=BORRADOR',
     list + page + '&tipo=OTRO', list + page + '&texto=%0A', list + page + '&texto=%C3',
-    list + page + '&texto=' + 'a'.repeat(251), list + page + '&texto=a/b',
-    list + page + '&texto=%GG', detail + query, detail + '/archivar', detail + '/historial',
-    list + '/%2e%2e', company + '/procesos' + page, list + page + '\n']) {
+    list + page + '&texto=' + 'a'.repeat(251),
+    list + page + '&texto=%GG', detail + query, detail + '/archivar', detail + '/historial-borrable',
+    list + '/%2e%2e', list + page + '\n']) {
     assert.equal(route('GET', path), undefined, path);
   }
 });
@@ -223,7 +235,7 @@ test('rejects a foreign origin, wrong host and oversized chunked body before pro
   const path = '/api/v1/identidad/sesion';
   assert.equal((await call(publicServer, path, { method: 'DELETE', headers: { Origin: 'https://outside.example' } })).status, 403);
   assert.equal((await call(publicServer, '/', { headers: { Host: 'outside.example' } })).status, 421);
-  const huge = await call(publicServer, path, { method: 'POST', body: 'a'.repeat(20_000),
+  const huge = await call(publicServer, path, { method: 'POST', body: 'a'.repeat(70_000),
     headers: { Origin: origin, 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' } });
   assert.equal(huge.status, 413);
   assert.equal(last, previous);
@@ -236,4 +248,81 @@ test('rejects an upstream certificate not signed by the configured CA', async ()
     assert.equal(result.status, 502);
     assert.equal(JSON.parse(result.text).code, 'API_NO_DISPONIBLE');
   } finally { await close(misconfigured); }
+});
+
+test('forwards only contracted JSON PUT bodies with cookie and CSRF and enforces their origin', async () => {
+  const path = `/api/v1/empresas/${companyId}/configuracion`;
+  const body = JSON.stringify({ revisionEsperada: 1, nombre: 'Empresa de prueba', zonaHoraria: 'America/Bogota' });
+  const previous = last;
+  assert.equal((await call(publicServer, path, { method: 'PUT', body,
+    headers: { Origin: 'https://outside.example', 'Content-Type': 'application/json' } })).status, 403);
+  assert.equal(last, previous);
+  const result = await call(publicServer, path, { method: 'PUT', body, headers: {
+    Origin: origin, 'Content-Type': 'application/json', Cookie: 'MSPISESSION=fixture', 'X-CSRF-TOKEN': 'fixture-csrf',
+  } });
+  assert.equal(result.status, 200);
+  assert.equal(last.method, 'PUT');
+  assert.equal(last.body, body);
+  assert.equal(last.headers.cookie, 'MSPISESSION=fixture');
+  assert.equal(last.headers['x-csrf-token'], 'fixture-csrf');
+  assert.equal((await call(publicServer, path, { method: 'PUT', body: '<xml/>', headers: {
+    Origin: origin, 'Content-Type': 'application/xml',
+  } })).status, 415);
+});
+
+test('transports bounded multipart bytes without inventing or changing their boundary', async () => {
+  const type = 'multipart/form-data; boundary=fixture-boundary';
+  const body = '--fixture-boundary\r\nContent-Disposition: form-data; name="archivo"; filename="fixture.pdf"\r\n'
+    + 'Content-Type: application/pdf\r\n\r\n' + 'fixture'.repeat(4000) + '\r\n--fixture-boundary--\r\n';
+  const result = await call(publicServer, evidenceList, { method: 'POST', body, headers: {
+    Origin: origin, 'Content-Type': type, 'X-CSRF-TOKEN': 'fixture-csrf',
+  } });
+  assert.equal(result.status, 200);
+  assert.equal(last.headers['content-type'], type);
+  assert.equal(last.body, body);
+  const previous = last;
+  for (const contentType of ['multipart/form-data', 'application/json', 'multipart/form-data; boundary=bad;extra=value']) {
+    assert.equal((await call(publicServer, evidenceList, { method: 'POST', body: 'fixture', headers: {
+      Origin: origin, 'Content-Type': contentType,
+    } })).status, 415);
+  }
+  assert.equal((await call(publicServer, evidenceList, { method: 'POST', body: 'x'.repeat(10016385), headers: {
+    Origin: origin, 'Content-Type': type, 'Transfer-Encoding': 'chunked',
+  } })).status, 413);
+  assert.equal(last, previous);
+});
+
+test('preserves backend validation and conflict information for the typed client', async () => {
+  nextReply = { status: 409, headers: { 'Content-Type': 'application/problem+json',
+    'X-Correlation-Id': companyId, 'Retry-After': '2' },
+  body: { code: 'REVISION_DESACTUALIZADA', detail: 'Hay una revisión más reciente.',
+    fields: [{ field: 'revisionEsperada', code: 'CONFLICTO', message: 'Revisa los cambios.' }] } };
+  const result = await call(publicServer, '/api/v1/identidad/sesion');
+  assert.equal(result.status, 409);
+  assert.equal(result.headers['x-correlation-id'], companyId);
+  assert.equal(result.headers['retry-after'], '2');
+  assert.equal(result.headers['cache-control'], 'no-store');
+  assert.equal(JSON.parse(result.text).fields[0].field, 'revisionEsperada');
+});
+
+test('bounds simultaneous multipart buffering and releases slots after completion', async () => {
+  heldUploads = [];
+  const ready = new Promise(resolve => { uploadArrived = () => { if (heldUploads.length === 2) resolve(); }; });
+  const options = { method: 'POST', body: '--fixture--\r\n', headers: {
+    Origin: origin, 'Content-Type': 'multipart/form-data; boundary=fixture',
+  } };
+  const first = call(publicServer, evidenceList, options);
+  const second = call(publicServer, evidenceList, options);
+  try {
+    await ready;
+    const limited = await call(publicServer, evidenceList, options);
+    assert.equal(limited.status, 503);
+    assert.equal(limited.headers['retry-after'], '1');
+  } finally {
+    for (const response of heldUploads) response.writeHead(200, { 'Content-Type': 'application/json' }).end('{}');
+    heldUploads = undefined;
+    uploadArrived = undefined;
+    await Promise.all([first, second]);
+  }
+  assert.equal((await call(publicServer, evidenceList, options)).status, 200);
 });

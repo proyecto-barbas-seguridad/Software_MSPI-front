@@ -2,7 +2,7 @@
 
 HU-SEG-002 añade exclusiones y una comprobación real en CI antes de inicializar la aplicación frontend. No añade aún pantallas, dependencias o un servidor.
 
-`.env.example` contiene solo `VITE_API_BASE_URL=/api`, una ruta pública para la futura configuración. Todo valor VITE_* incorporado al frontend puede ser leído por el usuario del navegador: nunca poner ahí contraseñas, tokens, claves privadas o credenciales de base/SMTP. Las nuevas variables públicas deben incorporarse explícitamente a la política del verificador al definirlas.
+Desde HU-FRONT-007, `.env.example` no necesita variables: el cliente usa `/api/v1` del mismo origen y no utiliza `VITE_API_BASE_URL`. Todo valor VITE_* incorporado al frontend puede ser leído por el usuario del navegador: nunca poner ahí contraseñas, tokens, claves privadas o credenciales de base/SMTP. Las nuevas variables públicas deben incorporarse explícitamente a la política del verificador al definirlas.
 
 El .gitignore raíz excluye configuración local, archivos de claves, volcados, directorios de secretos y salidas de construcción. No protege valores ya versionados ni sustituye los permisos del equipo.
 

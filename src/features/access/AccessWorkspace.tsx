@@ -4,11 +4,13 @@ import type { FormEvent } from 'react';
 import { accessMessage, capabilities, roleNames, WorkspaceStore } from './workspace';
 import type { Company } from './workspace';
 import { CompanyDashboard } from '../dashboard/CompanyDashboard';
+import { InventoryWorkspace } from '../inventory/InventoryWorkspace';
 
-function targetFromHash() {
+function routeFromHash() {
   const hash = window.location.hash;
-  if (!hash || hash === '#/empresas') return undefined;
-  return /^#\/empresas\/([^/]+)$/.exec(hash)?.[1] || 'invalid';
+  if (!hash || hash === '#/empresas') return {};
+  const route = /^#\/empresas\/([^/]+)(\/activos(?:\/([^/]+))?)?$/.exec(hash);
+  return route ? { target: route[1], inventoryRoute: route[2] ? { assetId: route[3] } : undefined } : { target: 'invalid' };
 }
 export function RoleChips({ company }: { company: Company }) {
   return <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }} aria-label="Roles en esta empresa">
@@ -24,7 +26,7 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
   const remaining = Math.max(0, Math.ceil((waitUntil - now) / 1000));
 
   useEffect(() => {
-    const route = () => { void store.open(targetFromHash()); };
+    const route = () => { const location = routeFromHash(); void store.open(location.target, 0, undefined, location.inventoryRoute); };
     const revalidate = () => { if (document.visibilityState === 'visible' && store.getSnapshot().identity) void store.retry(); };
     route();
     window.addEventListener('hashchange', route);
@@ -139,8 +141,11 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
         <RoleChips company={state.company} />
         <Button sx={{ alignSelf: 'flex-start' }} onClick={() => navigate()}>Cambiar empresa</Button>
       </Stack>
-      <CompanyEntry company={state.company} />
-      {capabilities(state.company).read && <CompanyDashboard state={state} onLoad={query => { void store.loadPanel(query); }} />}
+      {state.section !== 'assets' && <CompanyEntry company={state.company} />}
+      {capabilities(state.company).read && (state.section === 'assets'
+        ? <InventoryWorkspace key={state.company.empresaId} company={state.company} assetId={state.assetId} query={state.inventoryQuery} service={store.inventory}
+            onQuery={query => store.rememberInventoryQuery(state.company!.empresaId, query)} onAuthorization={store.authorizationLost} />
+        : <CompanyDashboard state={state} onLoad={query => { void store.loadPanel(query); }} />)}
     </>}
   </Stack>;
 }
@@ -154,7 +159,7 @@ function CompanyEntry({ company }: { company: Company }) {
       : 'Tu acceso se limita a las acciones asignadas y su contexto mínimo. La pantalla de tareas estará disponible en su historia de implementación.'}</Typography>
     {permissions.admin && <Typography>También tienes permisos de administración de empresa. Su pantalla se incorporará en la historia correspondiente.</Typography>}
     {permissions.read && <Stack direction="row" useFlexGap sx={{ gap: 2, flexWrap: 'wrap' }}>
-      <Link href={url}>Resumen de empresa</Link><Link href={url + '/activos'}>Activos</Link><Link href={url + '/evaluaciones'}>Evaluaciones</Link>
+      <Link href={url}>Resumen de empresa</Link><Link href={'#/empresas/' + company.empresaId + '/activos'}>Activos</Link><Link href={url + '/evaluaciones'}>Evaluaciones</Link>
     </Stack>}
     <Typography variant="body2" color="text.secondary">Los permisos se verifican en cada operación. Nadie puede aprobar o devolver su propia entrega de una acción.</Typography>
   </Stack></Paper>;

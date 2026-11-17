@@ -118,6 +118,12 @@ AE y GS pueden crear/editar borradores residuales en análisis o tratamiento, co
 
 Consulta base y antecedentes sin suponer que la primera fila es vigente; las reevaluaciones exigen motivo. El servidor valida pruebas/evidencias, vigencia y categorías y calcula el resultado, sin descuentos automáticos. Incluye protección de cambios, conflictos, borrador existente y operaciones inciertas sin reenvío. [Criterios, decisiones y verificación de HU-FRONT-021](docs/hu/HU-FRONT-021.md).
 
+## Aceptación y ciclo de riesgos · HU-FRONT-022
+
+AE puede **Aprobar aceptación del riesgo** con justificación y próxima revisión, sobre valoraciones vigentes. La fecha respeta la zona de la empresa y aprobar no cambia de estado. AE/GS disponen de las transiciones autorizadas y **Cerrar riesgo** desde seguimiento, con motivo y explicación separada para cada acción cancelada.
+
+El cierre consulta las acciones vinculadas, bloquea si hay abiertas y deja al backend comprobar las condiciones finales. Conserva permisos, revisión capturada, protección de cambios y relectura tras guardar, sin reenvíos automáticos ante conflictos o incertidumbre. [Criterios, decisiones y verificación de HU-FRONT-022](docs/hu/HU-FRONT-022.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

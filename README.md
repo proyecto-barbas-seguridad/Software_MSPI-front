@@ -130,6 +130,12 @@ AE y GS pueden **Crear riesgo relacionado** desde una ficha cerrada, con código
 
 El formulario empieza vacío y utiliza las referencias empresariales existentes. Mantiene protección de cambios, CSRF y manejo de conflictos o resultados inciertos sin reenvío automático. Tras crear consulta la ficha nueva; ante incertidumbre permite revisar el listado por código. [Criterios, decisiones y verificación de HU-FRONT-023](docs/hu/HU-FRONT-023.md).
 
+## Gestión inicial de implementaciones de controles · HU-FRONT-024
+
+**Implementaciones de controles** abre el listado empresarial y sus fichas. AE/GS pueden crear desde un control de catálogo disponible, con descripción y responsable de negocio propios; iniciar una propuesta; y registrar cambios de una implementada con motivo, creando una versión nueva en implementación y sin verificar. AU conserva consulta e historial.
+
+Se mantienen referencias explícitas, revisión capturada, protección de cambios, CSRF y relectura tras guardar, sin reenvío automático ante conflictos o incertidumbre. Las versiones anteriores conservan sus aplicaciones y verificaciones. [Criterios, decisiones y verificación de HU-FRONT-024](docs/hu/HU-FRONT-024.md). Aplicación con evidencia y verificación siguen para la siguiente HU.
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

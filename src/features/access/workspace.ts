@@ -62,7 +62,8 @@ export type AccessState = {
   panelError?: ApiError;
   results?: Results;
   resultsError?: ApiError;
-  section?: 'panel' | 'assets' | 'evaluations' | 'risks';
+  section?: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls';
+  controlId?: string;
   riskId?: string;
   riskQuery?: RiskQuery;
   assetId?: string;
@@ -88,7 +89,8 @@ export class WorkspaceStore {
   private controller?: AbortController;
   private target?: string;
   private page = 0;
-  private section: 'panel' | 'assets' | 'evaluations' | 'risks' = 'panel';
+  private section: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' = 'panel';
+  private controlId?: string;
   private riskId?: string;
   private riskQuery: RiskQuery = {};
   private assetId?: string;
@@ -124,7 +126,7 @@ export class WorkspaceStore {
   expire = () => {
     this.setDraftDirty(false);
     this.dispose(); this.target = undefined; this.page = 0;
-    this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
+    this.controlId = undefined; this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
     this.set({ status: 'login', notice: 'Tu sesión venció o dejó de estar activa. Vuelve a entrar.' });
   };
   private fail(error: unknown, identity?: Identity, login = false) {
@@ -132,12 +134,12 @@ export class WorkspaceStore {
     if (problem.status === 401 && !login) return this.expire();
     this.set({ status: login ? 'login' : 'error', identity, error: problem });
   }
-  open = async (target?: string, page = 0, panelQuery?: PanelQuery, route?: { section?: 'assets' | 'evaluations' | 'risks'; assetId?: string; evaluationId?: string; riskId?: string }) => {
+  open = async (target?: string, page = 0, panelQuery?: PanelQuery, route?: { section?: 'assets' | 'evaluations' | 'risks' | 'controls'; controlId?: string; assetId?: string; evaluationId?: string; riskId?: string }) => {
     if (!this.allowNavigation()) return;
     const hadIdentity = Boolean(this.state.identity);
-    if (target?.toLowerCase() !== this.target?.toLowerCase()) { this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.evaluationPage = 0; this.answerQuery = undefined; }
+    if (target?.toLowerCase() !== this.target?.toLowerCase()) { this.controlId = undefined; this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.evaluationPage = 0; this.answerQuery = undefined; }
     if (route?.evaluationId && route.evaluationId !== this.answerQuery?.id) this.answerQuery = undefined;
-    this.section = route ? route.section || 'assets' : 'panel'; this.assetId = route?.assetId; this.evaluationId = route?.evaluationId; this.riskId = route?.riskId;
+    this.controlId = route?.controlId; this.section = route ? route.section || 'assets' : 'panel'; this.assetId = route?.assetId; this.evaluationId = route?.evaluationId; this.riskId = route?.riskId;
     this.target = target; this.page = page;
     const task = this.begin({ status: 'loading' });
     let identity: Identity | undefined;
@@ -150,7 +152,7 @@ export class WorkspaceStore {
         if (!task.current()) return;
         if (company.empresaId.toLowerCase() !== target.toLowerCase()) throw invalid();
         if (this.section !== 'panel' && !capabilities(company).read) throw new ApiError(403, 'ACCESO_DENEGADO', 'No tienes acceso a esta información operativa.');
-        this.set({ status: 'company', identity, company, section: this.section, riskId: this.riskId, riskQuery: this.riskQuery, assetId: this.assetId, inventoryQuery: this.inventoryQuery, evaluationId: this.evaluationId, evaluationPage: this.evaluationPage, answerQuery: this.answerQuery && this.answerQuery.id === this.evaluationId ? this.answerQuery.query : undefined });
+        this.set({ status: 'company', identity, company, section: this.section, controlId: this.controlId, riskId: this.riskId, riskQuery: this.riskQuery, assetId: this.assetId, inventoryQuery: this.inventoryQuery, evaluationId: this.evaluationId, evaluationPage: this.evaluationPage, answerQuery: this.answerQuery && this.answerQuery.id === this.evaluationId ? this.answerQuery.query : undefined });
         if (this.section === 'panel' && capabilities(company).read) await this.loadPanel(panelQuery);
       } else {
         const companies = await this.service.companies(page, task.signal);
@@ -167,7 +169,7 @@ export class WorkspaceStore {
       } else this.fail(error, identity);
     }
   };
-  retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'risks' ? { section: 'risks', riskId: this.riskId } : this.section === 'assets' ? { assetId: this.assetId } : this.section === 'evaluations' ? { section: 'evaluations', evaluationId: this.evaluationId } : undefined);
+  retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'controls' ? { section: 'controls', controlId: this.controlId } : this.section === 'risks' ? { section: 'risks', riskId: this.riskId } : this.section === 'assets' ? { assetId: this.assetId } : this.section === 'evaluations' ? { section: 'evaluations', evaluationId: this.evaluationId } : undefined);
   rememberRiskQuery = (company: string, query: RiskQuery) => { if (company.toLowerCase() === this.target?.toLowerCase()) this.riskQuery = query; };
   rememberEvaluationPage = (company: string, page: number) => { if (company.toLowerCase() === this.target?.toLowerCase()) this.evaluationPage = page; };
   rememberAnswerQuery = (company: string, id: string, query: AnswerQuery) => {
@@ -237,7 +239,7 @@ export class WorkspaceStore {
     if (!this.allowNavigation()) return;
     const task = this.begin({ status: 'loading' });
     this.target = undefined; this.page = 0;
-    this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
+    this.controlId = undefined; this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
     try {
       await this.service.logout(task.signal);
       if (task.current()) this.set({ status: 'login', notice: 'Sesión cerrada.' });

@@ -9,6 +9,8 @@ export type Answer = components['schemas']['EvaluationResponse'];
 export type AnswerPage = components['schemas']['EvaluationResponsePage'];
 export type AnswerQuery = NonNullable<operations['listarRespuestasEvaluacion']['parameters']['query']>;
 export type Evidence = components['schemas']['ResponseEvidence'];
+export type EvidenceUpload = components['schemas']['ResponseEvidenceUpload'];
+export type UploadEvidence = operations['cargarEvidenciaRespuesta']['requestBody']['content']['multipart/form-data'];
 export type EvidencePage = components['schemas']['ResponseEvidencePage'];
 export type NewEvaluation = components['schemas']['CreateEvaluationDraft'];
 export type EditAnswer = components['schemas']['EditEvaluationResponse'];
@@ -30,6 +32,7 @@ const optionalText = (value: unknown) => value === null || text(value);
 const instant = (value: string) => Number.isFinite(Date.parse(value));
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar la información de la evaluación.');
 export interface EvaluationService {
+  upload(company: string, id: string, response: string, body: UploadEvidence, signal: AbortSignal): Promise<EvidenceUpload>;
   submit(company: string, id: string, body: ReviewEvaluation, signal: AbortSignal): Promise<Evaluation>;
   returnDraft(company: string, id: string, body: ReturnEvaluation, signal: AbortSignal): Promise<Evaluation>;
   close(company: string, id: string, body: ReviewEvaluation, signal: AbortSignal): Promise<Evaluation>;
@@ -52,6 +55,7 @@ export interface EvaluationService {
   file(company: string, id: string, responseId: string, evidenceId: string, signal: AbortSignal): Promise<Blob>;
 }
 export const createEvaluationService = (client = api): EvaluationService => ({
+  upload: async (empresaId, evaluacionId, respuestaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/evidencias', { path: { empresaId, evaluacionId, respuestaId }, body, signal })).data,
   submit: async (empresaId, evaluacionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/enviar-revision', { path: { empresaId, evaluacionId }, body, signal })).data,
   returnDraft: async (empresaId, evaluacionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/devolver', { path: { empresaId, evaluacionId }, body, signal })).data,
   close: async (empresaId, evaluacionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/cerrar', { path: { empresaId, evaluacionId }, body, signal })).data,

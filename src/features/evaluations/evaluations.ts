@@ -18,6 +18,10 @@ export type EditFinding = components['schemas']['EditEvaluationFinding'];
 export type CatalogPage = components['schemas']['ReferenceCatalogPage'];
 export type MethodPage = components['schemas']['ReferenceMethodPage'];
 export type ResponsiblePage = components['schemas']['CompanyResponsiblePage'];
+export type ReviewEvaluation = components['schemas']['ReviewEvaluation'];
+export type ReturnEvaluation = components['schemas']['ReturnEvaluation'];
+export type CorrectEvaluation = components['schemas']['CorrectEvaluation'];
+export type Closure = components['schemas']['EvaluationClosure'];
 export const states = { BORRADOR: 'Borrador', EN_REVISION: 'En revisión', CERRADA: 'Cerrada' };
 export const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const count = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
@@ -26,6 +30,12 @@ const optionalText = (value: unknown) => value === null || text(value);
 const instant = (value: string) => Number.isFinite(Date.parse(value));
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar la información de la evaluación.');
 export interface EvaluationService {
+  submit(company: string, id: string, body: ReviewEvaluation, signal: AbortSignal): Promise<Evaluation>;
+  returnDraft(company: string, id: string, body: ReturnEvaluation, signal: AbortSignal): Promise<Evaluation>;
+  close(company: string, id: string, body: ReviewEvaluation, signal: AbortSignal): Promise<Evaluation>;
+  closure(company: string, id: string, signal: AbortSignal): Promise<Closure>;
+  correct(company: string, id: string, body: CorrectEvaluation, signal: AbortSignal): Promise<Evaluation>;
+  confirmInherited(company: string, id: string, response: string, revision: number, signal: AbortSignal): Promise<Answer>;
   create(company: string, body: NewEvaluation, signal: AbortSignal): Promise<Evaluation>;
   editAnswer(company: string, id: string, response: string, body: EditAnswer, signal: AbortSignal): Promise<Answer>;
   findings(company: string, id: string, response: string, page: number, signal: AbortSignal): Promise<FindingPage>;
@@ -42,6 +52,12 @@ export interface EvaluationService {
   file(company: string, id: string, responseId: string, evidenceId: string, signal: AbortSignal): Promise<Blob>;
 }
 export const createEvaluationService = (client = api): EvaluationService => ({
+  submit: async (empresaId, evaluacionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/enviar-revision', { path: { empresaId, evaluacionId }, body, signal })).data,
+  returnDraft: async (empresaId, evaluacionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/devolver', { path: { empresaId, evaluacionId }, body, signal })).data,
+  close: async (empresaId, evaluacionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/cerrar', { path: { empresaId, evaluacionId }, body, signal })).data,
+  closure: async (empresaId, evaluacionId, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/cierre', { path: { empresaId, evaluacionId }, signal })).data,
+  correct: async (empresaId, evaluacionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/correcciones', { path: { empresaId, evaluacionId }, body, signal })).data,
+  confirmInherited: async (empresaId, evaluacionId, respuestaId, revisionEsperada, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/confirmar-heredada', { path: { empresaId, evaluacionId, respuestaId }, body: { revisionEsperada }, signal })).data,
   create: async (empresaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones', { path: { empresaId }, body, signal })).data,
   editAnswer: async (empresaId, evaluacionId, respuestaId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}', { path: { empresaId, evaluacionId, respuestaId }, body, signal })).data,
   findings: async (empresaId, evaluacionId, respuestaId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/hallazgos', { path: { empresaId, evaluacionId, respuestaId }, query: { pagina, tamano: 5 }, signal })).data,
@@ -146,5 +162,17 @@ export function validateFinding(value: Finding, response: string) {
   if (!value || !uuid.test(value.hallazgoId) || value.respuestaId !== response || !count(value.revisionEvaluacion)
     || !value.hallazgo || !text(value.hallazgo.descripcionBrecha) || !value.hallazgo.descripcionBrecha.trim()
     || !optionalText(value.hallazgo.recomendacion) || !instant(value.creadaEn) || !instant(value.actualizadaEn)) throw invalid();
+  return value;
+}
+
+export function validateClosure(value: Closure, id: string, evaluation?: Evaluation) {
+  if (!value || value.evaluacionId !== id || !uuid.test(value.versionCatalogoId) || !uuid.test(value.versionMetodologiaId)
+    || !uuid.test(value.cerradaPor) || !instant(value.cerradaEn) || !value.instantanea || !text(value.instantanea.politica)
+    || !value.instantanea.evidencias || Array.isArray(value.instantanea.evidencias) || typeof value.instantanea.evidencias !== 'object') throw invalid();
+  validateResults(value.instantanea.resultados, id);
+  if (evaluation && (value.versionCatalogoId !== evaluation.versionCatalogoId || value.versionMetodologiaId !== evaluation.versionMetodologiaId
+    || value.cerradaPor !== evaluation.cerradaPor || value.cerradaEn !== evaluation.cerradaEn || value.instantanea.resultados.revision !== evaluation.revision)) throw invalid();
+  for (const [response, proof] of Object.entries(value.instantanea.evidencias)) if (!uuid.test(response) || !proof || !uuid.test(proof.evidenciaId)
+    || !uuid.test(proof.evaluacionOrigenId) || !uuid.test(proof.respuestaOrigenId) || !/^[a-f0-9]{64}$/i.test(proof.sha256)) throw invalid();
   return value;
 }

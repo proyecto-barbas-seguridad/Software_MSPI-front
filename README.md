@@ -124,6 +124,12 @@ AE puede **Aprobar aceptación del riesgo** con justificación y próxima revisi
 
 El cierre consulta las acciones vinculadas, bloquea si hay abiertas y deja al backend comprobar las condiciones finales. Conserva permisos, revisión capturada, protección de cambios y relectura tras guardar, sin reenvíos automáticos ante conflictos o incertidumbre. [Criterios, decisiones y verificación de HU-FRONT-022](docs/hu/HU-FRONT-022.md).
 
+## Riesgo relacionado después del cierre · HU-FRONT-023
+
+AE y GS pueden **Crear riesgo relacionado** desde una ficha cerrada, con código y datos propios seleccionados expresamente. El nuevo riesgo comienza identificado, enlaza al original y sigue su propio ciclo; conserva el cierre e historial originales.
+
+El formulario empieza vacío y utiliza las referencias empresariales existentes. Mantiene protección de cambios, CSRF y manejo de conflictos o resultados inciertos sin reenvío automático. Tras crear consulta la ficha nueva; ante incertidumbre permite revisar el listado por código. [Criterios, decisiones y verificación de HU-FRONT-023](docs/hu/HU-FRONT-023.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

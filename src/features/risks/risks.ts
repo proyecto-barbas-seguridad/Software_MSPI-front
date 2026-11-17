@@ -46,6 +46,7 @@ export interface RiskService {
   startInherent(company: string, risk: string, body: NewInherent, signal: AbortSignal): Promise<Inherent>;
   editInherent(company: string, risk: string, assessment: string, body: EditInherent, signal: AbortSignal): Promise<Inherent>;
   confirmInherent(company: string, risk: string, assessment: string, revision: number, signal: AbortSignal): Promise<Inherent>;
+  createRelated(company: string, original: string, body: NewRisk, signal: AbortSignal): Promise<Risk>;
   create(company: string, body: NewRisk, signal: AbortSignal): Promise<Risk>;
   edit(company: string, risk: string, body: EditRisk, signal: AbortSignal): Promise<Risk>;
   analyze(company: string, risk: string, revision: number, signal: AbortSignal): Promise<Risk>;
@@ -74,6 +75,7 @@ export const createRiskService = (client = api): RiskService => ({
   startInherent: async (empresaId, riesgoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes', { path: { empresaId, riesgoId }, body, signal })).data,
   editInherent: async (empresaId, riesgoId, valoracionId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes/{valoracionId}', { path: { empresaId, riesgoId, valoracionId }, body, signal })).data,
   confirmInherent: async (empresaId, riesgoId, valoracionId, revisionEsperada, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes/{valoracionId}/confirmar', { path: { empresaId, riesgoId, valoracionId }, body: { revisionEsperada }, signal })).data,
+  createRelated: async (empresaId, riesgoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/riesgos-relacionados', { path: { empresaId, riesgoId }, body, signal })).data,
   create: async (empresaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos', { path: { empresaId }, body, signal })).data,
   edit: async (empresaId, riesgoId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}', { path: { empresaId, riesgoId }, body, signal })).data,
   analyze: async (empresaId, riesgoId, revisionEsperada, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/iniciar-analisis', { path: { empresaId, riesgoId }, body: { revisionEsperada }, signal })).data,

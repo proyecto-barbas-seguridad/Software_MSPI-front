@@ -166,6 +166,12 @@ AE/GS/AU pueden abrir **Reportes**, seleccionar periodo, filtros, evaluación op
 
 **Imprimir o guardar como PDF** abre el diálogo del navegador sobre el documento, conservando su corte. Cambiar filtros bloquea imprimir hasta regenerar; la pérdida de autorización retira el contexto. RA solo y AP sin membresía de lectura no acceden. [Criterios, decisiones y verificación de HU-FRONT-029](docs/hu/HU-FRONT-029.md). Impresión y paginación requieren revisión manual en navegador real.
 
+## Registro de actividad empresarial · HU-FRONT-030
+
+AE puede abrir **Actividad empresarial** para consultar eventos administrativos y operativos, con filtros por instante, actor usuario, código de acción y objeto. Presenta resultado, motivo, correlación, hora empresarial e instante original; no permite editar ni borrar. Los actores se identifican por UUID porque el contrato no entrega sus nombres.
+
+La navegación usa cursores opacos y cinco eventos por página. Desde es inclusivo y Hasta exclusivo; ambos requieren zona explícita. Cambiar filtros reinicia la consulta y la pérdida de autorización retira el contexto. GS/RA/AU sin AE y AP sin permiso empresarial no acceden. [Criterios, decisiones y verificación de HU-FRONT-030](docs/hu/HU-FRONT-030.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

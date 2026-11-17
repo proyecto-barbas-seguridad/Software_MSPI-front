@@ -115,7 +115,7 @@ describe('Company dashboard', () => {
     panel.riesgos = { ...panel.riesgos, total: 1, elementos: [{ riesgoId: evaluationId, codigo: 'R-001', estado: 'EN_ANALISIS', situacion: 'REVISION_REQUERIDA', valoracionId: null, versionMetodologiaId: null, nivel: null, probabilidad: null, impacto: null }] };
     mount({ panel, results: undefined });
     expect(screen.getByText(/Nivel residual: Sin valoración vigente/)).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'R-001' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'R-001' })).toHaveAttribute('href', `#/empresas/${a.empresaId}/riesgos/00000000-0000-0000-0000-000000000010`);
   });
   it('renders action execution state and overdue status independently', () => {
     const panel = emptyPanel(a.empresaId, { detalle: 'ACCIONES' });

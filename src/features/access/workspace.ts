@@ -1,3 +1,5 @@
+import { controlService } from '../controls/controls';
+import type { ControlService } from '../controls/controls';
 import { createRiskService } from '../risks/risks';
 import type { RiskQuery, RiskService } from '../risks/risks';
 import { api, ApiError } from '../../shared/api/client';
@@ -97,7 +99,7 @@ export class WorkspaceStore {
   private dirty = false;
   private draftPending = false;
   private validation?: AbortController;
-  constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService(), readonly evaluations: EvaluationService = createEvaluationService(), readonly risks: RiskService = createRiskService()) {}
+  constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService(), readonly evaluations: EvaluationService = createEvaluationService(), readonly risks: RiskService = createRiskService(), readonly controls: ControlService = controlService) {}
   getSnapshot = () => this.state;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private set(state: AccessState) { this.state = state; this.listeners.forEach(listener => listener()); }

@@ -164,7 +164,7 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
       </Stack>
       {(!state.section || state.section === 'panel') && <CompanyEntry company={state.company} />}
       {capabilities(state.company).read && (state.section === 'risks'
-        ? <Suspense fallback={<Typography role="status">Abriendo riesgos…</Typography>}><RiskWorkspace key={state.company.empresaId} company={state.company} onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation} riskId={state.riskId} query={state.riskQuery} service={store.risks} scope={store.scopeSignal} onAuthorization={store.authorizationLost} onQuery={query => store.rememberRiskQuery(state.company!.empresaId, query)} /></Suspense>
+        ? <Suspense fallback={<Typography role="status">Abriendo riesgos…</Typography>}><RiskWorkspace key={state.company.empresaId} company={state.company} onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation} riskId={state.riskId} query={state.riskQuery} controls={store.controls} service={store.risks} scope={store.scopeSignal} onAuthorization={store.authorizationLost} onQuery={query => store.rememberRiskQuery(state.company!.empresaId, query)} /></Suspense>
         : state.section === 'evaluations'
         ? <Suspense fallback={<Typography role="status">Abriendo evaluaciones…</Typography>}><EvaluationWorkspace key={state.company.empresaId} company={state.company} evaluationId={state.evaluationId} page={state.evaluationPage || 0}
             service={store.evaluations} scope={store.scopeSignal} query={state.answerQuery} onAuthorization={store.authorizationLost} onPage={page => store.rememberEvaluationPage(state.company!.empresaId, page)}

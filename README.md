@@ -106,6 +106,12 @@ AE y GS pueden crear y editar borradores inherentes de un riesgo en análisis, g
 
 Precarga valores reales, usa la revisión capturada y distingue guardado, confirmación y contexto desactualizado. Tras escribir relee ficha/historial, sin cálculos optimistas. Incluye protección de cambios, borrador existente, conflictos y resultados inciertos sin reenvío automático. [Criterios, decisiones y verificación de HU-FRONT-019](docs/hu/HU-FRONT-019.md). Residual, controles y las demás transiciones quedan para sus historias.
 
+## Vínculos y consulta de controles · HU-FRONT-020
+
+AE y GS pueden **Vincular control al riesgo** desde una ficha no cerrada, seleccionando una implementación empresarial, efecto esperado y justificación. El vínculo usa la revisión capturada y vuelve a consultar ficha/historial, sin calcular reducciones de riesgo. Incluye conflictos, duplicados, guardados inciertos y protección de cambios.
+
+Desde el vínculo, AE/GS/AU pueden consultar la implementación, aplicación, versiones y verificaciones, con carga bajo demanda y paginación. Separa catálogo, implementación y resultado vigente; cero criterios no es pendiente y una verificación histórica no acredita vigencia actual. [Criterios, decisiones y verificación de HU-FRONT-020](docs/hu/HU-FRONT-020.md). La gestión de implementaciones, sus archivos y la valoración residual continúan para sus historias.
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

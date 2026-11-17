@@ -11,6 +11,7 @@ export type NewInherent = components['schemas']['CreateInherentAssessment'];
 export type EditInherent = components['schemas']['EditInherentAssessment'];
 export type Inherent = components['schemas']['InherentAssessment'];
 export type Residual = components['schemas']['ResidualAssessment'];
+export type NewControlLink = components['schemas']['CreateRiskControlLink'];
 export type ControlLink = components['schemas']['RiskControlLink'];
 export type Acceptance = components['schemas']['RiskAcceptance'];
 export type History = { inherent: Inherent; residual: Residual; links: ControlLink; acceptances: Acceptance };
@@ -29,6 +30,7 @@ const instant = (value: unknown) => typeof value === 'string' && Number.isFinite
 const date = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && instant(value) && new Date(value).toISOString().slice(0, 10) === value;
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar la información de riesgos.');
 export interface RiskService {
+  link(company: string, risk: string, body: NewControlLink, signal: AbortSignal): Promise<ControlLink>;
   startInherent(company: string, risk: string, body: NewInherent, signal: AbortSignal): Promise<Inherent>;
   editInherent(company: string, risk: string, assessment: string, body: EditInherent, signal: AbortSignal): Promise<Inherent>;
   confirmInherent(company: string, risk: string, assessment: string, revision: number, signal: AbortSignal): Promise<Inherent>;
@@ -45,6 +47,7 @@ export interface RiskService {
   acceptances(company: string, risk: string, page: number, signal: AbortSignal): Promise<Page<Acceptance>>;
 }
 export const createRiskService = (client = api): RiskService => ({
+  link: async (empresaId, riesgoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/implementaciones-control', { path: { empresaId, riesgoId }, body, signal })).data,
   startInherent: async (empresaId, riesgoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes', { path: { empresaId, riesgoId }, body, signal })).data,
   editInherent: async (empresaId, riesgoId, valoracionId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes/{valoracionId}', { path: { empresaId, riesgoId, valoracionId }, body, signal })).data,
   confirmInherent: async (empresaId, riesgoId, valoracionId, revisionEsperada, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes/{valoracionId}/confirmar', { path: { empresaId, riesgoId, valoracionId }, body: { revisionEsperada }, signal })).data,

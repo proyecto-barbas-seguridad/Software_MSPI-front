@@ -13,6 +13,7 @@ import type { Editor } from './EvaluationEditor';
 import type { LifecycleMode } from './EvaluationLifecycle';
 const EvaluationLifecycle = lazy(() => import('./EvaluationLifecycle'));
 const ClosureView = lazy(() => import('./EvaluationLifecycle').then(module => ({ default: module.ClosureView })));
+const EvidenceUpload = lazy(() => import('./EvidenceUpload'));
 const EvaluationEditor = lazy(() => import('./EvaluationEditor'));
 const noop = () => {};
 const allow = () => true;
@@ -39,13 +40,15 @@ export default function EvaluationWorkspace({ company, evaluationId, page = 0, q
   scope?: AbortSignal; onDirty?: (dirty: boolean) => void; onPending?: (pending: boolean) => void; onLeave?: () => boolean;
 }) {
   const [editor, setEditor] = useState<Editor>();
+  const [upload, setUpload] = useState<Answer>();
+  const [expandedEvidence, setExpandedEvidence] = useState<string>();
   const [lifecycle, setLifecycle] = useState<LifecycleMode>();
   const [notice, setNotice] = useState<string>();
   const [store] = useState(() => new EvaluationStore(company.empresaId, service, onAuthorization, scope));
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const heading = useRef<HTMLHeadingElement>(null);
   const base = '#/empresas/' + company.empresaId + '/evaluaciones';
-  useEffect(() => { setEditor(undefined); setLifecycle(undefined); if (evaluationId) void store.detail(evaluationId, query); else void store.list(page); return () => store.dispose(); }, [store, evaluationId, page, query]);
+  useEffect(() => { setEditor(undefined); setLifecycle(undefined); setUpload(undefined); setExpandedEvidence(undefined); if (evaluationId) void store.detail(evaluationId, query); else void store.list(page); return () => store.dispose(); }, [store, evaluationId, page, query]);
   useEffect(() => { if (state.status !== 'loading') heading.current?.focus(); }, [state.status]);
   const list = (page: number) => { onPage(page); void store.list(page); };
   const detail = (query: AnswerQuery = {}) => { onQuery?.(query); void store.detail(evaluationId!, query); };
@@ -54,6 +57,8 @@ export default function EvaluationWorkspace({ company, evaluationId, page = 0, q
     detail({ pagina: 0, tipo: type === 'CONTROL' || type === 'CLAUSULA' ? type : undefined, grupo: String(form.get('grupo') || '').trim() || undefined });
   }
   const evaluation = state.evaluation;
+  if (upload && evaluation) return <Suspense fallback={<Typography role="status">Abriendo carga de evidencia…</Typography>}><EvidenceUpload companyId={company.empresaId} evaluation={evaluation} answer={upload} service={service} scope={scope} onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending}
+    onCancel={() => { if (onLeave()) setUpload(undefined); }} onSaved={evidence => { setExpandedEvidence(upload.respuestaId); setUpload(undefined); setNotice(evidence ? `Carga confirmada: ${evidence.nombreOriginal}. Consulta actualizada del servidor; el adjunto no se selecciona automáticamente para revisión o cierre.` : 'Consulta actualizada del servidor. Revisa las evidencias y la revisión antes de otra carga.'); void store.retry(); }} /></Suspense>;
   if (lifecycle && evaluation) return <Suspense fallback={<Typography role="status">Abriendo ciclo de evaluación…</Typography>}><EvaluationLifecycle companyId={company.empresaId} evaluation={evaluation} mode={lifecycle} service={service} scope={scope} onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending}
     onCancel={() => { if (onLeave()) setLifecycle(undefined); }} onSaved={created => { setLifecycle(undefined); if (created) window.location.hash = base + '/' + created.evaluacionId;
       else { setNotice('Estado de evaluación consultado de nuevo. Revisa la información vigente antes de continuar.'); void store.retry(); } }} /></Suspense>;
@@ -114,14 +119,14 @@ export default function EvaluationWorkspace({ company, evaluationId, page = 0, q
       {state.answersError && <ErrorNotice error={state.answersError} />}
       {state.answers && <>
         {!state.answers.elementos.length && <Alert severity="info">No hay respuestas en esta página con los filtros aplicados.</Alert>}
-        {state.answers.elementos.map(answer => <AnswerCard key={answer.respuestaId} answer={answer} company={company} evaluationId={evaluation.evaluacionId} service={service} scope={scope} onAuthorization={onAuthorization} editable={Boolean(editable)} revision={evaluation.revision} onConfirm={() => setLifecycle({ kind: 'confirm', answer })} onEdit={() => setEditor({ kind: 'answer', answer })} onFinding={finding => setEditor({ kind: 'finding', answer, finding })} />)}
+        {state.answers.elementos.map(answer => <AnswerCard key={answer.respuestaId} answer={answer} company={company} evaluationId={evaluation.evaluacionId} service={service} scope={scope} onAuthorization={onAuthorization} editable={Boolean(editable)} revision={evaluation.revision} expandEvidence={expandedEvidence === answer.respuestaId} onUpload={() => setUpload(answer)} onConfirm={() => setLifecycle({ kind: 'confirm', answer })} onEdit={() => setEditor({ kind: 'answer', answer })} onFinding={finding => setEditor({ kind: 'finding', answer, finding })} />)}
         <Pager label="respuestas" page={state.answers.pagina} more={state.answers.hayMas} load={pagina => detail({ ...state.query, pagina })} />
       </>}
     </>}
   </Stack>;
 }
-function AnswerCard({ answer, company, evaluationId, service, scope, onAuthorization, editable, revision, onEdit, onFinding, onConfirm }: { onConfirm: () => void; editable: boolean; revision: number; onEdit: () => void; onFinding: (finding?: Finding) => void; answer: Answer; company: Company; evaluationId: string; service: EvaluationService; scope?: AbortSignal; onAuthorization: (error: ApiError) => void }) {
-  const [open, setOpen] = useState(false); const [findingsOpen, setFindingsOpen] = useState(false); const value = answer.respuesta;
+function AnswerCard({ answer, company, evaluationId, service, scope, onAuthorization, editable, revision, onEdit, onFinding, onConfirm, onUpload, expandEvidence }: { onUpload: () => void; expandEvidence: boolean; onConfirm: () => void; editable: boolean; revision: number; onEdit: () => void; onFinding: (finding?: Finding) => void; answer: Answer; company: Company; evaluationId: string; service: EvaluationService; scope?: AbortSignal; onAuthorization: (error: ApiError) => void }) {
+  const [open, setOpen] = useState(expandEvidence); const [findingsOpen, setFindingsOpen] = useState(false); const value = answer.respuesta;
   return <Paper component="article" aria-label={'Respuesta ' + answer.codigo} sx={{ p: 2 }}><Stack spacing={2}>
     <Typography variant="overline">{answer.tipo === 'CONTROL' ? 'Control' : 'Cláusula'} · {labels[answer.grupo] || answer.grupo}</Typography>
     <Typography variant="h2" component="h4" sx={{ overflowWrap: 'anywhere' }}>{answer.codigo} · {answer.titulo}</Typography>
@@ -133,11 +138,11 @@ function AnswerCard({ answer, company, evaluationId, service, scope, onAuthoriza
     </Details>
     {answer.respuestaAnteriorId && <Alert severity={answer.heredadaConfirmada ? 'info' : 'warning'}>{answer.heredadaConfirmada ? 'Respuesta heredada confirmada.' : 'Respuesta heredada pendiente de confirmación en esta evaluación.'}</Alert>}
     {editable && answer.respuestaAnteriorId && !answer.heredadaConfirmada && <Button sx={{ alignSelf: 'flex-start' }} onClick={onConfirm}>Confirmar heredada {answer.codigo}</Button>}
-    {editable && <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}><Button onClick={onEdit}>Diligenciar {answer.codigo}</Button><Button onClick={() => onFinding()}>Registrar hallazgo en {answer.codigo}</Button></Stack>}
+    {editable && <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}><Button onClick={onUpload}>Adjuntar evidencia en {answer.codigo}</Button><Button onClick={onEdit}>Diligenciar {answer.codigo}</Button><Button onClick={() => onFinding()}>Registrar hallazgo en {answer.codigo}</Button></Stack>}
     <Box component="details" onToggle={event => setFindingsOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Ver hallazgos de {answer.codigo}</Typography>
       {findingsOpen && <FindingsList company={company} evaluationId={evaluationId} answer={answer} service={service} scope={scope} onAuthorization={onAuthorization} editable={editable} revision={revision} onEdit={onFinding} />}
     </Box>
-    <Box component="details" onToggle={event => setOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Ver evidencias de {answer.codigo}</Typography>
+    <Box component="details" open={open} onToggle={event => setOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Ver evidencias de {answer.codigo}</Typography>
       {open && <EvidenceList key={answer.respuestaId} company={company} evaluationId={evaluationId} responseId={answer.respuestaId} service={service} scope={scope} onAuthorization={onAuthorization} />}
     </Box>
   </Stack></Paper>;

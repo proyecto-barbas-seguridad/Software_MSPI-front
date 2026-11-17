@@ -97,7 +97,7 @@ export function createApiClient(config: { fetch?: typeof fetch; timeoutMs?: numb
       const abort = () => controller.abort();
       params.signal?.addEventListener('abort', abort, { once: true });
       if (params.signal?.aborted) abort();
-      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeout);
+      const timer = setTimeout(() => { timedOut = true; controller.abort(); }, rule.body.includes('multipart/form-data') ? (config.timeoutMs ?? 45000) : timeout);
       const send = (path: string, init: RequestInit = {}) => transport(path, { ...init,
         credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: controller.signal });
       try {

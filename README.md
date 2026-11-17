@@ -80,7 +80,13 @@ Precarga los datos reales, preserva cero y pendientes, y exige fundamento al cal
 
 AE y GS disponen de **Enviar a revisión**, **Devolver a borrador**, **Cerrar evaluación** y **Crear corrección vinculada**, según el estado. El envío/cierre permite elegir adjuntos explícitamente y muestra los faltantes que devuelve el backend para toda la evaluación. La devolución exige motivo; la corrección abre otro borrador con responsable seleccionado, conservando el original y sus versiones. Las respuestas heredadas pendientes pueden confirmarse sin cambiar sus valores.
 
-Las evaluaciones cerradas muestran su instantánea de resultados y evidencias conservadas, también para AU. Se mantienen revisión esperada, CSRF, protección de cambios, autorización y tratamiento de operaciones inciertas sin reenvío automático. El backend valida completitud, evidencia e integridad. La carga de archivos sigue pendiente. [Criterios, decisiones propuestas y verificación de HU-FRONT-015](docs/hu/HU-FRONT-015.md).
+Las evaluaciones cerradas muestran su instantánea de resultados y evidencias conservadas, también para AU. Se mantienen revisión esperada, CSRF, protección de cambios, autorización y tratamiento de operaciones inciertas sin reenvío automático. El backend valida completitud, evidencia e integridad. La carga de archivos se incorpora en HU-FRONT-016. [Criterios, decisiones propuestas y verificación de HU-FRONT-015](docs/hu/HU-FRONT-015.md).
+
+## Carga de evidencias de evaluación · HU-FRONT-016
+
+AE y GS pueden **Adjuntar evidencia** desde cada respuesta de una evaluación en borrador: un PDF, PNG o JPEG de hasta 10 MB (10 000 000 bytes), con descripción opcional. El servidor valida contenido, inspección, cuota y revisión. Al confirmar se releen la evaluación y sus evidencias, sin cambiar notas ni seleccionar el adjunto automáticamente para revisión/cierre.
+
+El formulario conserva cambios ante errores recuperables y protege la navegación. Conflictos y resultados inciertos bloquean otro envío hasta consultar estado; inspección/tamaño rechazados requieren reemplazar el archivo. No hay eliminación, previsualización ni almacenamiento persistente del borrador. [Criterios, decisiones y verificación de HU-FRONT-016](docs/hu/HU-FRONT-016.md).
 
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 

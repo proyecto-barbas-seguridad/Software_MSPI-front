@@ -2,15 +2,16 @@ import { Box, Button, Divider, Link, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
-export function WorkspaceShell({ children, mode, onToggleMode, panelHref, activityHref, section, actionsHref, actionsLabel = 'Acciones' }: {
+export function WorkspaceShell({ children, mode, onToggleMode, panelHref, activityHref, configurationHref, section, actionsHref, actionsLabel = 'Acciones' }: {
   children: ReactNode;
   mode: 'light' | 'dark';
   onToggleMode: () => void;
   panelHref?: string;
   activityHref?: string;
+  configurationHref?: string;
   actionsHref?: string;
   actionsLabel?: string;
-  section?: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions' | 'reports' | 'activity';
+  section?: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions' | 'reports' | 'activity' | 'configuration';
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return <Box>
@@ -40,6 +41,7 @@ export function WorkspaceShell({ children, mode, onToggleMode, panelHref, activi
             <Button component="a" href={panelHref + '/controles'} aria-current={section === 'controls' ? 'page' : undefined} variant={section === 'controls' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Implementaciones de controles</Button>
             <Button component="a" href={panelHref + '/reportes'} aria-current={section === 'reports' ? 'page' : undefined} variant={section === 'reports' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Reportes</Button>
           </>}
+          {configurationHref && <Button component="a" href={configurationHref} aria-current={section === 'configuration' ? 'page' : undefined} variant={section === 'configuration' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Configuración empresarial</Button>}
           {activityHref && <Button component="a" href={activityHref} aria-current={section === 'activity' ? 'page' : undefined} variant={section === 'activity' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Actividad empresarial</Button>}
           {actionsHref && <Button component="a" href={actionsHref} aria-current={section === 'actions' ? 'page' : undefined} variant={section === 'actions' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>{actionsLabel}</Button>}
           <Button component="a" href="/interfaz/#/empresas" variant="outlined" onClick={() => setMenuOpen(false)}>Mis empresas</Button>

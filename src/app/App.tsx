@@ -11,7 +11,7 @@ export function App({ cache, store: providedStore }: { cache: ReturnType<typeof 
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const panelHref = state.company && capabilities(state.company).read ? '/interfaz/#/empresas/' + state.company.empresaId : undefined;
   return <Providers mode={mode} cache={cache}>
-    <WorkspaceShell mode={mode} onToggleMode={() => setMode(mode === 'light' ? 'dark' : 'light')} panelHref={panelHref} activityHref={state.company && capabilities(state.company).admin ? '/interfaz/#/empresas/' + state.company.empresaId + '/actividad' : undefined} section={state.section} actionsHref={state.company && capabilities(state.company).actions ? '/interfaz/#/empresas/' + state.company.empresaId + '/acciones' : undefined} actionsLabel={state.company && capabilities(state.company).read ? 'Acciones' : 'Mis acciones'}>
+    <WorkspaceShell mode={mode} onToggleMode={() => setMode(mode === 'light' ? 'dark' : 'light')} panelHref={panelHref} configurationHref={state.company && capabilities(state.company).read ? '/interfaz/#/empresas/' + state.company.empresaId + '/configuracion' : undefined} activityHref={state.company && capabilities(state.company).admin ? '/interfaz/#/empresas/' + state.company.empresaId + '/actividad' : undefined} section={state.section} actionsHref={state.company && capabilities(state.company).actions ? '/interfaz/#/empresas/' + state.company.empresaId + '/acciones' : undefined} actionsLabel={state.company && capabilities(state.company).read ? 'Acciones' : 'Mis acciones'}>
       <AccessWorkspace store={store} />
     </WorkspaceShell>
   </Providers>;

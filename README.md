@@ -64,6 +64,12 @@ AE y GS pueden abrir **Clasificar activo** en una ficha activa. El formulario co
 
 **Guardar borrador** permite campos pendientes coherentes. **Confirmar versión guardada** es un paso explícito, usa la revisión del servidor y publica la criticidad calculada por el backend. Los datos personales condicionales y «No aplica» se diferencian de faltantes; las versiones anteriores se conservan. Incluye protección de cambios, conflictos y resultados inciertos, y carga del formulario bajo demanda. [Criterios, decisiones y verificación de HU-FRONT-012](docs/hu/HU-FRONT-012.md).
 
+## Consulta de evaluaciones React · HU-FRONT-013
+
+**Consultar evaluaciones** abre `#/empresas/{empresaId}/evaluaciones`; la ficha usa `#/empresas/{empresaId}/evaluaciones/{evaluacionId}`. Incluye listado y respuestas de cinco en cinco, filtros de tipo/grupo, referencias históricas, resultados del backend y evidencias desplegables con descarga privada. Los enlaces del panel ahora abren esta ficha React. Las URL de consulta originales se conservan.
+
+La ficha distingue nota cero, pendiente, no aplica y resultado provisional. Respuestas filtradas y resultados globales mantienen ámbitos separados; se avisa si las consultas devuelven revisiones diferentes. Evidencias se consultan al desplegar y el backend vuelve a inspeccionar/autorizarlas al descargar. Solo lectura para AE/GS/AU; RA solo no solicita el módulo y AP no se infiere. La creación/diligenciamiento/ciclo de evaluación y carga de evidencias quedan para sus historias. [Alcance y verificación de HU-FRONT-013](docs/hu/HU-FRONT-013.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

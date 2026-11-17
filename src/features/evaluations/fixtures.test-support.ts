@@ -1,0 +1,19 @@
+import { vi } from 'vitest';
+import type { Results } from '../dashboard/panel';
+import type { Answer, Evaluation, EvaluationService } from './evaluations';
+export const evaluation: Evaluation = { evaluacionId: '00000000-0000-0000-0000-000000000061', nombre: 'Diagnóstico de prueba', fechaEvaluacion: '2026-11-16', alcance: 'Alcance de prueba', responsableId: '00000000-0000-0000-0000-000000000062', versionCatalogoId: '00000000-0000-0000-0000-000000000063', versionMetodologiaId: '00000000-0000-0000-0000-000000000064', estado: 'BORRADOR', revision: 4, creadaPor: '00000000-0000-0000-0000-000000000065', creadaEn: '2026-11-16T15:00:00Z', actualizadaEn: '2026-11-16T15:00:00Z', evaluacionAnteriorId: null, motivoRevision: null, cerradaPor: null, cerradaEn: null };
+export const answer: Answer = { respuestaId: '00000000-0000-0000-0000-000000000071', elementoId: '00000000-0000-0000-0000-000000000072', versionCatalogoId: evaluation.versionCatalogoId, tipo: 'CONTROL', codigo: 'A.1', titulo: 'Control de prueba', grupo: 'ORGANIZACIONAL', respuesta: { aplicabilidad: 'APLICA', calificacion: 0, justificacionAplicabilidad: null, fundamento: 'Fundamento de nota cero' }, revisionEvaluacion: 4, actualizadaPor: evaluation.creadaPor, actualizadaEn: evaluation.actualizadaEn, respuestaAnteriorId: null, heredadaConfirmada: true };
+export const answers: Answer[] = [answer,
+  { ...answer, respuestaId: '00000000-0000-0000-0000-000000000073', elementoId: '00000000-0000-0000-0000-000000000074', codigo: 'A.2', respuesta: { aplicabilidad: 'NO_APLICA', calificacion: null, justificacionAplicabilidad: 'Exclusión justificada de prueba', fundamento: null } },
+  { ...answer, respuestaId: '00000000-0000-0000-0000-000000000075', elementoId: '00000000-0000-0000-0000-000000000076', codigo: 'A.3', respuesta: { aplicabilidad: 'SIN_DECIDIR', calificacion: null, justificacionAplicabilidad: null, fundamento: null }, respuestaAnteriorId: answer.respuestaId, heredadaConfirmada: false },
+  { ...answer, respuestaId: '00000000-0000-0000-0000-000000000077', elementoId: '00000000-0000-0000-0000-000000000078', codigo: '4.1', tipo: 'CLAUSULA', grupo: 'CLAUSULA_4', respuesta: { aplicabilidad: 'APLICA', calificacion: null, justificacionAplicabilidad: null, fundamento: null } }];
+export const results: Results = { evaluacionId: evaluation.evaluacionId, revision: 4,
+  controlesGlobal: { total: 3, aplicables: 2, evaluados: 1, pendientes: 0, sinDecidir: 1, noAplican: 1, puntaje: 0, avance: 50, estado: 'PROVISIONAL' },
+  dominios: [], clausulas: [{ grupo: 'CLAUSULA_4', resultado: { total: 1, aplicables: 1, evaluados: 0, pendientes: 1, sinDecidir: 0, noAplican: 0, puntaje: null, avance: 0, estado: 'PENDIENTE' } }] };
+export const evidence = { evidenciaId: '00000000-0000-0000-0000-000000000081', nombreOriginal: 'acta-prueba.pdf', tipoDetectado: 'application/pdf' as const, tamanoBytes: 14, descripcion: 'Adjunto ilustrativo', creadaPor: evaluation.creadaPor, creadaEn: evaluation.creadaEn, estadoInspeccion: 'LIMPIA' as const };
+export function evaluationService(overrides: Partial<EvaluationService> = {}): EvaluationService {
+  return { list: vi.fn().mockImplementation(async (_, pagina) => ({ elementos: [evaluation], pagina, tamano: 5, hayMas: false })), detail: vi.fn().mockResolvedValue(evaluation),
+    answers: vi.fn().mockImplementation(async (_, __, query) => ({ elementos: answers.filter(item => (!query.tipo || query.tipo === item.tipo) && (!query.grupo || query.grupo === item.grupo)), pagina: query.pagina || 0, tamano: 5, hayMas: false })),
+    results: vi.fn().mockResolvedValue(results), evidence: vi.fn().mockImplementation(async (_, __, ___, pagina) => ({ elementos: [evidence], pagina, tamano: 5, hayMas: false })),
+    file: vi.fn().mockResolvedValue(new Blob(['%PDF-1.7\n%%EOF'], { type: 'application/pdf' })), ...overrides };
+}

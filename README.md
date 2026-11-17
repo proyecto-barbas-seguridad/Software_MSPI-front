@@ -100,6 +100,12 @@ AE y GS pueden **Crear riesgo**, **Editar riesgo** y **Iniciar análisis** desde
 
 Todas las escrituras usan revisión capturada/CSRF y vuelven a consultar la ficha. Incluye protección de cambios, códigos duplicados, referencias no disponibles, conflictos y resultados inciertos sin reenvío automático. La valoración y las demás transiciones quedan para sus historias. [Criterios, decisiones y verificación de HU-FRONT-018](docs/hu/HU-FRONT-018.md).
 
+## Valoración inherente de riesgos · HU-FRONT-019
+
+AE y GS pueden crear y editar borradores inherentes de un riesgo en análisis, guardar pendientes y **Confirmar valoración guardada** en otro paso. La confirmación requiere probabilidad, impacto, periodo, fundamento, supuestos y fuente; nivel e índices proceden del backend. Las reevaluaciones exigen motivo y conservan el antecedente.
+
+Precarga valores reales, usa la revisión capturada y distingue guardado, confirmación y contexto desactualizado. Tras escribir relee ficha/historial, sin cálculos optimistas. Incluye protección de cambios, borrador existente, conflictos y resultados inciertos sin reenvío automático. [Criterios, decisiones y verificación de HU-FRONT-019](docs/hu/HU-FRONT-019.md). Residual, controles y las demás transiciones quedan para sus historias.
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

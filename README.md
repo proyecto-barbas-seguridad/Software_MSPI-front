@@ -154,6 +154,12 @@ AE/GS pueden **Crear acción** desde un riesgo o hallazgo, seleccionar una membr
 
 **Editar acción** precarga los valores y exige motivo; reasignar requiere confirmación. Permite conservar un plazo vencido, pero un plazo cambiado no puede ser anterior al día empresarial. **Cancelar acción** exige motivo y confirmación y conserva antecedentes. Mantiene revisión capturada, CSRF, protección de cambios y relectura sin reenvío automático ante incertidumbre. [Criterios, decisiones y verificación de HU-FRONT-027](docs/hu/HU-FRONT-027.md). Entrega y revisión independiente siguen para la siguiente HU.
 
+## Avances, evidencias, entrega y revisión independiente · HU-FRONT-028
+
+El responsable actual con AE/GS/RA puede **Registrar avance**, **Adjuntar evidencia de acción** y **Solicitar revisión** mientras la acción esté pendiente o en ejecución. La entrega selecciona expresamente un adjunto cuando la tarea lo exige; el primer avance/entrega desde pendiente registra también el inicio. Cargar no entrega ni inicia automáticamente.
+
+AE/GS puede **Aprobar entrega** o **Devolver entrega** con motivo y confirmación, sobre la entrega vigente. La interfaz comprueba su autor contra la identidad de sesión y bloquea ambas decisiones propias, aunque se combinen roles; el backend vuelve a validarlo. Mantiene revisión capturada, protección de cambios, CSRF, relectura y resultados inciertos sin reenvío. [Criterios, decisiones y verificación de HU-FRONT-028](docs/hu/HU-FRONT-028.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

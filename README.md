@@ -142,6 +142,12 @@ AE/GS pueden **Adjuntar evidencia de control** a la versión actual (PDF/PNG/JPE
 
 Cada verificación requiere otro adjunto. Fechas/cantidades comienzan pendientes y cero cumplidos se conserva como dato. AU consulta/descarga evidencias de cada versión, con inspección y autorización al descargar. Mantiene revisión capturada, CSRF, protección de cambios y relectura, sin reenvíos automáticos ante incertidumbre. [Criterios, decisiones y verificación de HU-FRONT-025](docs/hu/HU-FRONT-025.md).
 
+## Consulta de acciones y Mis acciones para RA · HU-FRONT-026
+
+**Acciones** abre el listado y ficha empresariales para AE/GS/AU. RA solo dispone de **Mis acciones**, con las tareas que el backend le permite por su asignación actual, resumen preparado y archivos de contexto elegidos expresamente, sin acceder a expedientes completos. Los roles se combinan por empresa.
+
+Incluye historial operativo y evidencias bajo demanda, descarga autorizada/inspeccionada y pérdida de acceso tras reasignación o revocación. Conserva la página dentro de la empresa y no inventa totales del historial. Los códigos del panel enlazan a las fichas. [Criterios, decisiones y verificación de HU-FRONT-026](docs/hu/HU-FRONT-026.md). Creación, edición, entrega y revisión siguen para sus historias.
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

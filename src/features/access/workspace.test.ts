@@ -85,9 +85,9 @@ describe('Session and company scope', () => {
     expect(store.getSnapshot().notice).toContain('No se confirmó el cierre');
   });
   it('combines roles within one company only', () => {
-    expect(capabilities({ ...a, roles: ['AU', 'GS'] })).toEqual({ read: true, write: true, admin: false });
-    expect(capabilities({ ...a, roles: ['AU'] })).toEqual({ read: true, write: false, admin: false });
-    expect(capabilities(b)).toEqual({ read: false, write: false, admin: false });
+    expect(capabilities({ ...a, roles: ['AU', 'GS'] })).toEqual({ actions: true, read: true, write: true, admin: false });
+    expect(capabilities({ ...a, roles: ['AU'] })).toEqual({ actions: true, read: true, write: false, admin: false });
+    expect(capabilities(b)).toEqual({ actions: true, read: false, write: false, admin: false });
   });
   it('rejects cross-company context, empty roles, AP role and expired identity', async () => {
     for (const invalid of [b, { ...a, roles: [] }, { ...a, roles: ['AP'] }]) {

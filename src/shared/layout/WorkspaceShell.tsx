@@ -2,12 +2,14 @@ import { Box, Button, Divider, Link, Stack, Typography } from '@mui/material';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
-export function WorkspaceShell({ children, mode, onToggleMode, panelHref, section }: {
+export function WorkspaceShell({ children, mode, onToggleMode, panelHref, section, actionsHref, actionsLabel = 'Acciones' }: {
   children: ReactNode;
   mode: 'light' | 'dark';
   onToggleMode: () => void;
   panelHref?: string;
-  section?: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls';
+  actionsHref?: string;
+  actionsLabel?: string;
+  section?: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions';
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return <Box>
@@ -36,6 +38,7 @@ export function WorkspaceShell({ children, mode, onToggleMode, panelHref, sectio
             <Button component="a" href={panelHref + '/riesgos'} aria-current={section === 'risks' ? 'page' : undefined} variant={section === 'risks' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Consultar riesgos</Button>
             <Button component="a" href={panelHref + '/controles'} aria-current={section === 'controls' ? 'page' : undefined} variant={section === 'controls' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Implementaciones de controles</Button>
           </>}
+          {actionsHref && <Button component="a" href={actionsHref} aria-current={section === 'actions' ? 'page' : undefined} variant={section === 'actions' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>{actionsLabel}</Button>}
           <Button component="a" href="/interfaz/#/empresas" variant="outlined" onClick={() => setMenuOpen(false)}>Mis empresas</Button>
         </Stack>
         <Divider sx={{ my: 3 }} />

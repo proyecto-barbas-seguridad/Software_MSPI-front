@@ -1,11 +1,16 @@
 import { Alert, Box, Button, Chip, Link, Paper, Stack, Typography } from '@mui/material';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode, FormEvent } from 'react';
 import { ApiError } from '../../shared/api/client';
+import { capabilities } from '../access/workspace';
+import type { RiskMode } from './RiskEditor';
 import type { Company } from '../access/workspace';
 import { date, labels, number, timestamp } from '../dashboard/panel';
 import { states, uuid, validatePage, validateRisk, validators } from './risks';
 import type { Risk, RiskService, RiskQuery, Inherent, Residual, History, Page } from './risks';
+const RiskEditor = lazy(() => import('./RiskEditor'));
+const noop = () => {};
+const allow = () => true;
 const names = { inherent: 'Valoraciones inherentes', residual: 'Valoraciones residuales', links: 'Controles vinculados', acceptances: 'Aceptaciones' };
 const extra: Record<string, string> = { CONFIRMADA: 'Confirmada', REDUCIR: 'Reducir', COMPARTIR: 'Compartir', ACEPTAR: 'Aceptar', EVITAR: 'Evitar', PROBABILIDAD: 'Probabilidad', IMPACTO: 'Impacto', AMBOS: 'Probabilidad e impacto', REVISION_PENDIENTE: 'Revisión pendiente', HISTORICA: 'Histórica', CONTEXTO_CAMBIADO: 'Contexto cambiado', INHERENTE_SUSTITUIDA: 'Inherente sustituida', VERSION_CONTROL_CAMBIADA: 'Versión de control cambiada', VERIFICACION_SUSTITUIDA: 'Verificación sustituida', EVIDENCIA_BLOQUEADA: 'Evidencia bloqueada', CONTROL_VINCULADO: 'Control vinculado', VERIFICACION_VENCIDA: 'Verificación vencida' };
 const label = (value: string | null | undefined) => value == null ? 'Pendiente' : labels[value] || extra[value] || value;
@@ -27,7 +32,10 @@ function useRead<T>(load: (signal: AbortSignal) => Promise<T>, { scope, onAuthor
 function ErrorNotice({ error }: { error: ApiError }) { return <Alert severity="error">{error.status === 404 ? 'El riesgo o recurso no está disponible en esta empresa.' : error.message}{error.correlationId && ` Referencia de soporte: ${error.correlationId}`}{error.retryAfter !== undefined && ` El servidor indicó esperar ${error.retryAfter} segundos antes de reintentar.`}</Alert>; }
 function Pager({ page, more, name, load }: { page: number; more: boolean; name: string; load: (page: number) => void }) { return <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap', alignItems: 'center' }}><Button aria-label={'Anterior en ' + name} disabled={page === 0} onClick={() => load(page - 1)}>Anterior</Button><Typography>Página {page + 1}</Typography><Button aria-label={'Siguiente en ' + name} disabled={!more} onClick={() => load(page + 1)}>Siguiente</Button></Stack>; }
 function Details({ rows }: { rows: [string, ReactNode][] }) { return <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(140px,1fr) minmax(0,2fr)' }, gap: 1, '& dt': { color: 'text.secondary' }, '& dd': { m: 0, mb: 1, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }}>{rows.map(([name, value]) => <Box key={name} sx={{ display: 'contents' }}><Typography component="dt">{name}</Typography><Typography component="dd">{value}</Typography></Box>)}</Box>; }
-export default function RiskWorkspace({ company, riskId, query: initialQuery, service, scope, onAuthorization, onQuery }: { company: Company; riskId?: string; query?: RiskQuery; service: RiskService; onQuery: (query: RiskQuery) => void } & Access) {
+export default function RiskWorkspace({ company, riskId, query: initialQuery, service, scope, onAuthorization, onQuery, onDirty = noop, onPending = noop, onLeave = allow }: { onDirty?: (dirty: boolean) => void; onPending?: (pending: boolean) => void; onLeave?: () => boolean; company: Company; riskId?: string; query?: RiskQuery; service: RiskService; onQuery: (query: RiskQuery) => void } & Access) {
+  const [editor, setEditor] = useState<RiskMode>();
+  const [notice, setNotice] = useState<string>();
+  useEffect(() => { setEditor(undefined); setNotice(undefined); }, [riskId]);
   const [query, setQuery] = useState<RiskQuery>(() => ({ ...initialQuery, pagina: initialQuery?.pagina ?? 0, tamano: 5 }));
   const heading = useRef<HTMLHeadingElement>(null); const base = '#/empresas/' + company.empresaId + '/riesgos';
   const load = useCallback(async (signal: AbortSignal) => {
@@ -38,8 +46,14 @@ export default function RiskWorkspace({ company, riskId, query: initialQuery, se
   useEffect(() => { if (!state.loading) heading.current?.focus(); }, [state.loading]);
   function update(next: RiskQuery) { const effective = { ...next, tamano: 5 }; setQuery(effective); onQuery(effective); }
   function filter(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const values = new FormData(event.currentTarget); const estado = String(values.get('estado') || ''); update({ pagina: 0, codigo: String(values.get('codigo') || '').trim() || undefined, estado: states.includes(estado as Risk['estado']) ? estado as Risk['estado'] : undefined }); }
+  if (editor) return <Suspense fallback={<Typography role="status">Abriendo formulario de riesgo…</Typography>}><RiskEditor companyId={company.empresaId} risk={state.data?.risk} mode={editor} service={service} scope={scope} onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending} onCancel={() => { if (onLeave()) setEditor(undefined); }}
+    onSaved={(created, inspectCode) => { setEditor(undefined); if (created) window.location.hash = base + '/' + created.riesgoId;
+      else { setNotice('Consulta actualizada del servidor. Revisa el estado antes de otra escritura.'); if (inspectCode) update({ codigo: inspectCode, pagina: 0 }); else state.retry(); } }} /></Suspense>;
   return <Stack component="section" spacing={3} aria-labelledby="risk-title" aria-busy={state.loading} sx={{ overflowWrap: 'anywhere' }}>
     <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}><Typography id="risk-title" variant="h2" tabIndex={-1} ref={heading}>{riskId ? 'Ficha de riesgo' : 'Riesgos'}</Typography>{riskId && <Link href={base}>Volver a riesgos</Link>}<Button disabled={state.loading} onClick={state.retry}>Actualizar {riskId ? 'riesgo' : 'listado'}</Button></Stack>
+    {notice && <Alert severity="info">{notice}</Alert>}
+    {!riskId && capabilities(company).write && <Button variant="contained" sx={{ alignSelf: 'flex-start' }} onClick={() => setEditor('create')}>Crear riesgo</Button>}
+    {state.data?.risk && capabilities(company).write && state.data.risk.estado !== 'CERRADO' && <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}><Button onClick={() => setEditor('edit')}>Editar riesgo</Button>{state.data.risk.estado === 'IDENTIFICADO' && <Button variant="contained" onClick={() => setEditor('analyze')}>Iniciar análisis</Button>}</Stack>}
     <Typography color="text.secondary">Consulta de la empresa activa. Las valoraciones y su vigencia proceden del servidor; un control vinculado no implica una reducción automática.</Typography>
     {!riskId && <Box component="form" aria-label="Filtros de riesgos" onSubmit={filter} key={JSON.stringify(query)}><Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr auto' }, gap: 2, alignItems: 'end' }}>
       <Stack spacing={1}><Typography component="label" htmlFor="risk-code">Código del riesgo</Typography><Box component="input" id="risk-code" name="codigo" maxLength={80} defaultValue={query.codigo || ''} sx={fields} /></Stack>

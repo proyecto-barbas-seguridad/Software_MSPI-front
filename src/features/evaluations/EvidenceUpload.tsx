@@ -5,16 +5,9 @@ import { ApiError } from '../../shared/api/client';
 import { validateEvidence } from './evaluations';
 import type { Answer, Evaluation, EvaluationService, Evidence } from './evaluations';
 
-export const MAX_EVIDENCE_BYTES = 10_000_000;
+import { fileProblem, typeFor } from '../../shared/evidence/files';
+export { fileProblem, MAX_EVIDENCE_BYTES } from '../../shared/evidence/files';
 const fields = { width: '100%', minHeight: 44, p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper', color: 'text.primary', font: 'inherit' };
-const typeFor = (name: string) => /\.pdf$/i.test(name) ? 'application/pdf' : /\.png$/i.test(name) ? 'image/png' : /\.jpe?g$/i.test(name) ? 'image/jpeg' : undefined;
-export function fileProblem(file?: File) {
-  if (!file) return 'Selecciona un archivo.';
-  if (!file.name.trim() || file.name.length > 255 || /[\\/\p{Cc}\p{Cf}]/u.test(file.name) || !typeFor(file.name)) return 'Elige un PDF, PNG o JPEG con nombre válido de hasta 255 caracteres, sin rutas ni caracteres de control.';
-  if (!file.size) return 'El archivo está vacío. Selecciona otro archivo.';
-  if (file.size > MAX_EVIDENCE_BYTES) return 'El archivo supera 10 MB (10 000 000 bytes). Selecciona uno más pequeño.';
-  return undefined;
-}
 export default function EvidenceUpload({ companyId, evaluation, answer, service, scope, onSaved, onCancel, onAuthorization, onDirty, onPending }: {
   companyId: string; evaluation: Evaluation; answer: Answer; service: EvaluationService; scope?: AbortSignal;
   onSaved: (evidence?: Evidence) => void; onCancel: () => void; onAuthorization: (error: ApiError) => void; onDirty: (dirty: boolean) => void; onPending: (pending: boolean) => void;

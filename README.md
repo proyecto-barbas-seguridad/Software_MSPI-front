@@ -136,6 +136,12 @@ El formulario empieza vacío y utiliza las referencias empresariales existentes.
 
 Se mantienen referencias explícitas, revisión capturada, protección de cambios, CSRF y relectura tras guardar, sin reenvío automático ante conflictos o incertidumbre. Las versiones anteriores conservan sus aplicaciones y verificaciones. [Criterios, decisiones y verificación de HU-FRONT-024](docs/hu/HU-FRONT-024.md). Aplicación con evidencia y verificación siguen para la siguiente HU.
 
+## Aplicación, evidencias y verificación de controles · HU-FRONT-025
+
+AE/GS pueden **Adjuntar evidencia de control** a la versión actual (PDF/PNG/JPEG hasta 10 MB), **Confirmar aplicación** con fecha no futura y **Registrar verificación** con prueba, fundamento, criterios, próxima revisión y evidencia explícita. Cargar no confirma los siguientes pasos; aplicar deja el resultado sin verificar. El backend determina la efectividad y conserva antecedentes.
+
+Cada verificación requiere otro adjunto. Fechas/cantidades comienzan pendientes y cero cumplidos se conserva como dato. AU consulta/descarga evidencias de cada versión, con inspección y autorización al descargar. Mantiene revisión capturada, CSRF, protección de cambios y relectura, sin reenvíos automáticos ante incertidumbre. [Criterios, decisiones y verificación de HU-FRONT-025](docs/hu/HU-FRONT-025.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

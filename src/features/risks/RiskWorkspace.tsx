@@ -13,6 +13,9 @@ import type { Company } from '../access/workspace';
 import { date, labels, number, timestamp } from '../dashboard/panel';
 import { states, uuid, validatePage, validateRisk, validators } from './risks';
 import type { Risk, RiskService, RiskQuery, Inherent, Residual, History, Page } from './risks';
+import { transitions, transitionLabel } from './riskLifecycle';
+import type { RiskLifecycleMode } from './riskLifecycle';
+const RiskLifecycle = lazy(() => import('./RiskLifecycleEditor'));
 const ResidualEditor = lazy(() => import('./ResidualEditor'));
 const ControlPanel = lazy(() => import('../controls/ControlPanel'));
 const RiskControlEditor = lazy(() => import('./RiskControlEditor'));
@@ -42,13 +45,14 @@ function ErrorNotice({ error }: { error: ApiError }) { return <Alert severity="e
 function Pager({ page, more, name, load }: { page: number; more: boolean; name: string; load: (page: number) => void }) { return <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap', alignItems: 'center' }}><Button aria-label={'Anterior en ' + name} disabled={page === 0} onClick={() => load(page - 1)}>Anterior</Button><Typography>Página {page + 1}</Typography><Button aria-label={'Siguiente en ' + name} disabled={!more} onClick={() => load(page + 1)}>Siguiente</Button></Stack>; }
 function Details({ rows }: { rows: [string, ReactNode][] }) { return <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(140px,1fr) minmax(0,2fr)' }, gap: 1, '& dt': { color: 'text.secondary' }, '& dd': { m: 0, mb: 1, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }}>{rows.map(([name, value]) => <Box key={name} sx={{ display: 'contents' }}><Typography component="dt">{name}</Typography><Typography component="dd">{value}</Typography></Box>)}</Box>; }
 export default function RiskWorkspace({ company, riskId, query: initialQuery, service, controls = controlService, scope, onAuthorization, onQuery, onDirty = noop, onPending = noop, onLeave = allow }: { onDirty?: (dirty: boolean) => void; onPending?: (pending: boolean) => void; onLeave?: () => boolean; controls?: ControlService; company: Company; riskId?: string; query?: RiskQuery; service: RiskService; onQuery: (query: RiskQuery) => void } & Access) {
+  const [lifecycle, setLifecycle] = useState<RiskLifecycleMode>();
   const [editor, setEditor] = useState<RiskMode>();
   const [inherentEditor, setInherentEditor] = useState<InherentMode>();
   const [residualEditor, setResidualEditor] = useState<ResidualMode>();
   const [expandedHistory, setExpandedHistory] = useState<keyof History>();
   const [linkEditor, setLinkEditor] = useState(false);
   const [notice, setNotice] = useState<string>();
-  useEffect(() => { setEditor(undefined); setInherentEditor(undefined); setResidualEditor(undefined); setExpandedHistory(undefined); setLinkEditor(false); setNotice(undefined); }, [riskId]);
+  useEffect(() => { setLifecycle(undefined); setEditor(undefined); setInherentEditor(undefined); setResidualEditor(undefined); setExpandedHistory(undefined); setLinkEditor(false); setNotice(undefined); }, [riskId]);
   const [query, setQuery] = useState<RiskQuery>(() => ({ ...initialQuery, pagina: initialQuery?.pagina ?? 0, tamano: 5 }));
   const heading = useRef<HTMLHeadingElement>(null); const base = '#/empresas/' + company.empresaId + '/riesgos';
   const load = useCallback(async (signal: AbortSignal) => {
@@ -59,6 +63,7 @@ export default function RiskWorkspace({ company, riskId, query: initialQuery, se
   useEffect(() => { if (!state.loading) heading.current?.focus(); }, [state.loading]);
   function update(next: RiskQuery) { const effective = { ...next, tamano: 5 }; setQuery(effective); onQuery(effective); }
   function filter(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const values = new FormData(event.currentTarget); const estado = String(values.get('estado') || ''); update({ pagina: 0, codigo: String(values.get('codigo') || '').trim() || undefined, estado: states.includes(estado as Risk['estado']) ? estado as Risk['estado'] : undefined }); }
+  if (lifecycle && state.data?.risk) return <Suspense fallback={<Typography role="status">Abriendo ciclo del riesgo…</Typography>}><RiskLifecycle company={company} risk={state.data.risk} mode={lifecycle} service={service} scope={scope} onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending} onCancel={() => { if (onLeave()) setLifecycle(undefined); }} onSaved={() => { setLifecycle(undefined); setExpandedHistory(lifecycle.kind === 'accept' ? 'acceptances' : undefined); setNotice('Consulta actualizada del servidor. Revisa el estado y sus referencias antes de continuar.'); state.retry(); }} /></Suspense>;
   if (residualEditor && state.data?.risk) return <Suspense fallback={<Typography role="status">Abriendo valoración residual…</Typography>}><ResidualEditor company={company.empresaId} risk={state.data.risk} mode={residualEditor} service={service} controls={controls} scope={scope} onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending} onCancel={() => { if (onLeave()) setResidualEditor(undefined); }}
     onSaved={() => { setResidualEditor(undefined); setExpandedHistory('residual'); setNotice('Consulta actualizada del servidor. Revisa la ficha y las valoraciones residuales antes de continuar.'); state.retry(); }} /></Suspense>;
   if (linkEditor && state.data?.risk) return <Suspense fallback={<Typography role="status">Abriendo vínculo de control…</Typography>}><RiskControlEditor company={company.empresaId} zone={company.zonaHoraria} risk={state.data.risk} service={service} controls={controls} scope={scope} onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending} onCancel={() => { if (onLeave()) setLinkEditor(false); }}
@@ -75,6 +80,7 @@ export default function RiskWorkspace({ company, riskId, query: initialQuery, se
     {state.data?.risk && capabilities(company).write && state.data.risk.estado !== 'CERRADO' && <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}><Button onClick={() => setEditor('edit')}>Editar riesgo</Button><Button onClick={() => setLinkEditor(true)}>Vincular control al riesgo</Button>{state.data.risk.estado === 'IDENTIFICADO' && <Button variant="contained" onClick={() => setEditor('analyze')}>Iniciar análisis</Button>}</Stack>}
     {state.data?.risk && capabilities(company).write && state.data.risk.estado === 'EN_ANALISIS' && <Button sx={{ alignSelf: 'flex-start' }} onClick={() => setInherentEditor({ kind: 'create' })}>Nueva valoración inherente</Button>}
     {state.data?.risk && capabilities(company).write && residualStates.includes(state.data.risk.estado) && <Stack spacing={1}><Button sx={{ alignSelf: 'flex-start' }} disabled={!state.data.risk.inherenteVigenteId || state.data.risk.requiereRevision} onClick={() => setResidualEditor({ kind: 'create' })}>Nueva valoración residual</Button>{(!state.data.risk.inherenteVigenteId || state.data.risk.requiereRevision) && <Typography color="text.secondary">Confirma una inherente vigente antes de valorar el residual.</Typography>}</Stack>}
+    {state.data?.risk && capabilities(company).write && <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}>{transitions[state.data.risk.estado].map(target => <Button key={target} onClick={() => setLifecycle({ kind: 'transition', target })}>{transitionLabel(state.data!.risk!, target)}</Button>)}{company.roles.includes('AE') && state.data.risk.estado !== 'CERRADO' && state.data.risk.detalle.tratamientoPropuesto === 'ACEPTAR' && <Button onClick={() => setLifecycle({ kind: 'accept' })}>Aprobar aceptación del riesgo</Button>}</Stack>}
     <Typography color="text.secondary">Consulta de la empresa activa. Las valoraciones y su vigencia proceden del servidor; un control vinculado no implica una reducción automática.</Typography>
     {!riskId && <Box component="form" aria-label="Filtros de riesgos" onSubmit={filter} key={JSON.stringify(query)}><Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr auto' }, gap: 2, alignItems: 'end' }}>
       <Stack spacing={1}><Typography component="label" htmlFor="risk-code">Código del riesgo</Typography><Box component="input" id="risk-code" name="codigo" maxLength={80} defaultValue={query.codigo || ''} sx={fields} /></Stack>

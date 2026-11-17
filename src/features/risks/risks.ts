@@ -4,6 +4,9 @@ export type Risk = components['schemas']['Risk'];
 export type NewRisk = components['schemas']['CreateRisk'];
 export type EditRisk = components['schemas']['EditRisk'];
 export type Reference = { id: string; label: string };
+export type RiskTransition = components['schemas']['RiskTransition'];
+export type ApproveAcceptance = components['schemas']['ApproveRiskAcceptance'];
+export type RiskAction = Pick<components['schemas']['ImprovementAction'], 'accionId' | 'codigo' | 'riesgoId' | 'estado'>;
 export type RiskPage = components['schemas']['RiskPage'];
 export type RiskQuery = NonNullable<operations['listarRiesgos']['parameters']['query']>;
 export type InherentEntries = components['schemas']['InherentInputs'];
@@ -33,6 +36,9 @@ const instant = (value: unknown) => typeof value === 'string' && Number.isFinite
 const date = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && instant(value) && new Date(value).toISOString().slice(0, 10) === value;
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar la información de riesgos.');
 export interface RiskService {
+  accept(company: string, risk: string, body: ApproveAcceptance, signal: AbortSignal): Promise<Acceptance>;
+  transition(company: string, risk: string, body: RiskTransition, signal: AbortSignal): Promise<Risk>;
+  actions(company: string, page: number, signal: AbortSignal): Promise<Page<RiskAction>>;
   startResidual(company: string, risk: string, body: NewResidual, signal: AbortSignal): Promise<Residual>;
   editResidual(company: string, risk: string, assessment: string, body: EditResidual, signal: AbortSignal): Promise<Residual>;
   confirmResidual(company: string, risk: string, assessment: string, revision: number, signal: AbortSignal): Promise<Residual>;
@@ -53,6 +59,14 @@ export interface RiskService {
   acceptances(company: string, risk: string, page: number, signal: AbortSignal): Promise<Page<Acceptance>>;
 }
 export const createRiskService = (client = api): RiskService => ({
+  accept: async (empresaId, riesgoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/aceptaciones', { path: { empresaId, riesgoId }, body, signal })).data,
+  transition: async (empresaId, riesgoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/transiciones', { path: { empresaId, riesgoId }, body, signal })).data,
+  actions: async (empresaId, pagina, signal) => {
+    const result = validatePage((await client.request('get', '/api/v1/empresas/{empresaId}/acciones', { path: { empresaId }, query: { pagina, tamano: 5 }, signal })).data, pagina, item => {
+      if (!id(item.accionId) || !text(item.codigo) || !optionalId(item.riesgoId) || !['PENDIENTE', 'EN_EJECUCION', 'EN_REVISION', 'COMPLETADA', 'CANCELADA'].includes(item.estado)) throw invalid();
+    });
+    return { ...result, elementos: result.elementos.map(({ accionId, codigo, riesgoId, estado }) => ({ accionId, codigo, riesgoId, estado })) };
+  },
   startResidual: async (empresaId, riesgoId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-residuales', { path: { empresaId, riesgoId }, body, signal })).data,
   editResidual: async (empresaId, riesgoId, residualId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-residuales/{residualId}', { path: { empresaId, riesgoId, residualId }, body, signal })).data,
   confirmResidual: async (empresaId, riesgoId, residualId, revisionEsperada, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-residuales/{residualId}/confirmar', { path: { empresaId, riesgoId, residualId }, body: { revisionEsperada }, signal })).data,

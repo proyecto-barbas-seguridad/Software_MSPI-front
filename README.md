@@ -172,6 +172,12 @@ AE puede abrir **Actividad empresarial** para consultar eventos administrativos 
 
 La navegación usa cursores opacos y cinco eventos por página. Desde es inclusivo y Hasta exclusivo; ambos requieren zona explícita. Cambiar filtros reinicia la consulta y la pérdida de autorización retira el contexto. GS/RA/AU sin AE y AP sin permiso empresarial no acceden. [Criterios, decisiones y verificación de HU-FRONT-030](docs/hu/HU-FRONT-030.md).
 
+## Configuración empresarial · HU-FRONT-031
+
+AE/GS/AU pueden consultar **Configuración empresarial** con nombre, descripción, zona horaria y revisión vigente. Solo AE dispone de edición en página, con valores reales precargados y confirmación al cambiar zona; no modifica estado técnico, metodología ni privilegios.
+
+Guardar usa revisión capturada/CSRF y relee la configuración antes de presentar el resultado, actualizando después el contexto empresarial. Conserva cambios y bloquea reenvíos ante conflicto o incertidumbre hasta consultar expresamente. [Criterios, decisiones y verificación de HU-FRONT-031](docs/hu/HU-FRONT-031.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

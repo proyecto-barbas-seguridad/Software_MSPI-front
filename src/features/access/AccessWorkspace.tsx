@@ -5,6 +5,7 @@ import { accessMessage, capabilities, roleNames, WorkspaceStore } from './worksp
 import type { Company } from './workspace';
 import { CompanyDashboard } from '../dashboard/CompanyDashboard';
 import { InventoryWorkspace } from '../inventory/InventoryWorkspace';
+const ConfigurationWorkspace = lazy(() => import('../configuration/ConfigurationWorkspace'));
 const ActivityWorkspace = lazy(() => import('../activity/ActivityWorkspace'));
 const ReportWorkspace = lazy(() => import('../reports/ReportWorkspace'));
 const ActionWorkspace = lazy(() => import('../actions/ActionWorkspace'));
@@ -15,9 +16,9 @@ const EvaluationWorkspace = lazy(() => import('../evaluations/EvaluationWorkspac
 function routeFromHash() {
   const hash = window.location.hash;
   if (!hash || hash === '#/empresas') return {};
-  const route = /^#\/empresas\/([^/]+)(?:\/(activos|evaluaciones|riesgos|controles|acciones|reportes|actividad)(?:\/([^/]+))?)?$/.exec(hash);
-  if (route && ['reportes', 'actividad'].includes(route[2]) && route[3]) return { target: 'invalid' };
-  return route ? { target: route[1], inventoryRoute: route[2] === 'actividad' ? { section: 'activity' as const } : route[2] === 'reportes' ? { section: 'reports' as const } : route[2] === 'acciones' ? { section: 'actions' as const, actionId: route[3] } : route[2] === 'controles' ? { section: 'controls' as const, controlId: route[3] } : route[2] === 'riesgos' ? { section: 'risks' as const, riskId: route[3] } : route[2] === 'evaluaciones' ? { section: 'evaluations' as const, evaluationId: route[3] } : route[2] ? { assetId: route[3] } : undefined } : { target: 'invalid' };
+  const route = /^#\/empresas\/([^/]+)(?:\/(activos|evaluaciones|riesgos|controles|acciones|reportes|actividad|configuracion)(?:\/([^/]+))?)?$/.exec(hash);
+  if (route && ['reportes', 'actividad', 'configuracion'].includes(route[2]) && route[3]) return { target: 'invalid' };
+  return route ? { target: route[1], inventoryRoute: route[2] === 'configuracion' ? { section: 'configuration' as const } : route[2] === 'actividad' ? { section: 'activity' as const } : route[2] === 'reportes' ? { section: 'reports' as const } : route[2] === 'acciones' ? { section: 'actions' as const, actionId: route[3] } : route[2] === 'controles' ? { section: 'controls' as const, controlId: route[3] } : route[2] === 'riesgos' ? { section: 'risks' as const, riskId: route[3] } : route[2] === 'evaluaciones' ? { section: 'evaluations' as const, evaluationId: route[3] } : route[2] ? { assetId: route[3] } : undefined } : { target: 'invalid' };
 }
 export function RoleChips({ company }: { company: Company }) {
   return <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }} aria-label="Roles en esta empresa">
@@ -169,7 +170,9 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
       </Stack>
       {(!state.section || state.section === 'panel') && <CompanyEntry company={state.company} />}
       {state.section === 'actions' && capabilities(state.company).actions && <Suspense fallback={<Typography role="status">Abriendo acciones…</Typography>}><ActionWorkspace key={state.company.empresaId} company={state.company} userId={state.identity?.usuarioId} actionId={state.actionId} initialPage={state.actionPage} service={store.actions} onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation} scope={store.scopeSignal} onAuthorization={store.authorizationLost} onPage={page => store.rememberActionPage(state.company!.empresaId, page)} /></Suspense>}
-      {capabilities(state.company).read && state.section !== 'actions' && (state.section === 'activity'
+      {capabilities(state.company).read && state.section !== 'actions' && (state.section === 'configuration'
+        ? <Suspense fallback={<Typography role="status">Abriendo configuración…</Typography>}><ConfigurationWorkspace key={state.company.empresaId} company={state.company} service={store.configuration} scope={store.scopeSignal} onAuthorization={store.authorizationLost} onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation} onContextRefresh={store.revalidate} /></Suspense>
+        : state.section === 'activity'
         ? capabilities(state.company).admin && <Suspense fallback={<Typography role="status">Abriendo actividad…</Typography>}><ActivityWorkspace key={state.company.empresaId} company={state.company} service={store.activity} scope={store.scopeSignal} onAuthorization={store.authorizationLost} /></Suspense>
         : state.section === 'reports'
         ? <Suspense fallback={<Typography role="status">Abriendo reportes…</Typography>}><ReportWorkspace key={state.company.empresaId} company={state.company} service={store.reports} scope={store.scopeSignal} onAuthorization={store.authorizationLost} /></Suspense>

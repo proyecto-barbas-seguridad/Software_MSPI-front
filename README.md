@@ -70,6 +70,12 @@ AE y GS pueden abrir **Clasificar activo** en una ficha activa. El formulario co
 
 La ficha distingue nota cero, pendiente, no aplica y resultado provisional. Respuestas filtradas y resultados globales mantienen ámbitos separados; se avisa si las consultas devuelven revisiones diferentes. Evidencias se consultan al desplegar y el backend vuelve a inspeccionar/autorizarlas al descargar. Solo lectura para AE/GS/AU; RA solo no solicita el módulo y AP no se infiere. La creación/diligenciamiento/ciclo de evaluación y carga de evidencias quedan para sus historias. [Alcance y verificación de HU-FRONT-013](docs/hu/HU-FRONT-013.md).
 
+## Borradores de evaluación React · HU-FRONT-014
+
+AE y GS pueden **Crear evaluación**, elegir responsable y versiones disponibles de la empresa y abrir el nuevo borrador. Desde las respuestas de una ficha en borrador pueden **Diligenciar** y **Registrar hallazgo**; el desplegable de hallazgos permite consultar y editar los existentes. AU conserva lectura y RA solo no accede al módulo.
+
+Precarga los datos reales, preserva cero y pendientes, y exige fundamento al calificar. No aplica requiere justificación y solo se ofrece para controles. Todas las escrituras usan la revisión capturada de la evaluación y vuelven a consultar sus resultados. Incluye protección de cambios, conflictos, permisos retirados y guardados inciertos sin reenvío automático. [Criterios, decisiones propuestas y verificación de HU-FRONT-014](docs/hu/HU-FRONT-014.md). Ciclo de revisión/cierre y carga de evidencias continúan pendientes de sus historias.
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

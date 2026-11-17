@@ -1,3 +1,5 @@
+import { createReportService } from '../reports/reports';
+import type { ReportService } from '../reports/reports';
 import { createActionService } from '../actions/actions';
 import type { ActionService } from '../actions/actions';
 import { controlService } from '../controls/controls';
@@ -64,7 +66,7 @@ export type AccessState = {
   panelError?: ApiError;
   results?: Results;
   resultsError?: ApiError;
-  section?: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions';
+  section?: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions' | 'reports';
   actionId?: string;
   actionPage?: number;
   controlId?: string;
@@ -93,7 +95,7 @@ export class WorkspaceStore {
   private controller?: AbortController;
   private target?: string;
   private page = 0;
-  private section: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions' = 'panel';
+  private section: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions' | 'reports' = 'panel';
   private actionId?: string;
   private actionPage = 0;
   private controlId?: string;
@@ -107,7 +109,7 @@ export class WorkspaceStore {
   private dirty = false;
   private draftPending = false;
   private validation?: AbortController;
-  constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService(), readonly evaluations: EvaluationService = createEvaluationService(), readonly risks: RiskService = createRiskService(), readonly controls: ControlService = controlService, readonly actions: ActionService = createActionService()) {}
+  constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService(), readonly evaluations: EvaluationService = createEvaluationService(), readonly risks: RiskService = createRiskService(), readonly controls: ControlService = controlService, readonly actions: ActionService = createActionService(), readonly reports: ReportService = createReportService()) {}
   getSnapshot = () => this.state;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private set(state: AccessState) { this.state = state; this.listeners.forEach(listener => listener()); }
@@ -140,7 +142,7 @@ export class WorkspaceStore {
     if (problem.status === 401 && !login) return this.expire();
     this.set({ status: login ? 'login' : 'error', identity, error: problem });
   }
-  open = async (target?: string, page = 0, panelQuery?: PanelQuery, route?: { section?: 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions'; actionId?: string; controlId?: string; assetId?: string; evaluationId?: string; riskId?: string }) => {
+  open = async (target?: string, page = 0, panelQuery?: PanelQuery, route?: { section?: 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions' | 'reports'; actionId?: string; controlId?: string; assetId?: string; evaluationId?: string; riskId?: string }) => {
     if (!this.allowNavigation()) return;
     const hadIdentity = Boolean(this.state.identity);
     if (target?.toLowerCase() !== this.target?.toLowerCase()) { this.actionId = undefined; this.actionPage = 0; this.controlId = undefined; this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.evaluationPage = 0; this.answerQuery = undefined; }
@@ -175,7 +177,7 @@ export class WorkspaceStore {
       } else this.fail(error, identity);
     }
   };
-  retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'actions' ? { section: 'actions', actionId: this.actionId } : this.section === 'controls' ? { section: 'controls', controlId: this.controlId } : this.section === 'risks' ? { section: 'risks', riskId: this.riskId } : this.section === 'assets' ? { assetId: this.assetId } : this.section === 'evaluations' ? { section: 'evaluations', evaluationId: this.evaluationId } : undefined);
+  retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'reports' ? { section: 'reports' } : this.section === 'actions' ? { section: 'actions', actionId: this.actionId } : this.section === 'controls' ? { section: 'controls', controlId: this.controlId } : this.section === 'risks' ? { section: 'risks', riskId: this.riskId } : this.section === 'assets' ? { assetId: this.assetId } : this.section === 'evaluations' ? { section: 'evaluations', evaluationId: this.evaluationId } : undefined);
   rememberActionPage = (company: string, page: number) => { if (company.toLowerCase() === this.target?.toLowerCase()) this.actionPage = page; };
   rememberRiskQuery = (company: string, query: RiskQuery) => { if (company.toLowerCase() === this.target?.toLowerCase()) this.riskQuery = query; };
   rememberEvaluationPage = (company: string, page: number) => { if (company.toLowerCase() === this.target?.toLowerCase()) this.evaluationPage = page; };
@@ -183,7 +185,7 @@ export class WorkspaceStore {
     if (company.toLowerCase() === this.target?.toLowerCase() && id === this.evaluationId) this.answerQuery = { id, query };
   };
   revalidate = async () => {
-    if (!this.dirty) return this.retry();
+    if (!this.dirty && this.section !== 'reports') return this.retry();
     const previous = this.state;
     if (!previous.identity || !previous.company) return;
     this.validation?.abort(); const controller = this.validation = new AbortController(); const generation = this.generation;
@@ -200,8 +202,8 @@ export class WorkspaceStore {
     } catch (error) {
       if (!current()) return;
       if (error instanceof ApiError && [401, 403].includes(error.status)) this.authorizationLost(error);
-      else this.set({ ...this.state, notice: 'No pudimos comprobar de nuevo el acceso. Tu borrador sigue solo en esta pestaña; cada escritura requiere autorización del servidor.' });
-      // A transport failure keeps the unsaved buffer. Every write is still authorized by the backend.
+      else this.set({ ...this.state, notice: this.section === 'reports' ? 'No pudimos comprobar de nuevo el acceso. El reporte conserva su corte anterior; cada generación requiere autorización del servidor.' : 'No pudimos comprobar de nuevo el acceso. Tu borrador sigue solo en esta pestaña; cada escritura requiere autorización del servidor.' });
+      // A transport failure keeps the in-memory form or report snapshot. New requests remain authorized by the backend.
     }
   };
   rememberInventoryQuery = (companyId: string, query: AssetQuery) => { if (companyId.toLowerCase() === this.target?.toLowerCase()) this.inventoryQuery = query; };

@@ -88,6 +88,12 @@ AE y GS pueden **Adjuntar evidencia** desde cada respuesta de una evaluación en
 
 El formulario conserva cambios ante errores recuperables y protege la navegación. Conflictos y resultados inciertos bloquean otro envío hasta consultar estado; inspección/tamaño rechazados requieren reemplazar el archivo. No hay eliminación, previsualización ni almacenamiento persistente del borrador. [Criterios, decisiones y verificación de HU-FRONT-016](docs/hu/HU-FRONT-016.md).
 
+## Consulta de riesgos React · HU-FRONT-017
+
+**Consultar riesgos** abre `#/empresas/{empresaId}/riesgos`, con filtros de código/estado y paginación. Los riesgos del panel enlazan a la nueva ficha, que muestra contexto y referencias, valoraciones inherentes/residuales, controles vinculados, aceptaciones y cierre si existe. Las secciones históricas se consultan al desplegarlas y tienen paginación independiente.
+
+Distingue borrador, pendiente, nivel registrado, histórico, vigente y revisión requerida usando los datos del backend, sin calcular descuentos automáticos. AE/GS/AU pueden consultar; RA solo no accede al módulo. Incluye fallos parciales, pérdida de autorización, cancelación de consultas y filtros conservados dentro de una empresa. La gestión y valoración de riesgos quedan para sus historias. [Criterios, decisiones y verificación de HU-FRONT-017](docs/hu/HU-FRONT-017.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

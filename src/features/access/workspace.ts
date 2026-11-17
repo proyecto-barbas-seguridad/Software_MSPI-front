@@ -1,3 +1,5 @@
+import { createRiskService } from '../risks/risks';
+import type { RiskQuery, RiskService } from '../risks/risks';
 import { api, ApiError } from '../../shared/api/client';
 import type { components } from '../../shared/api/generated/schema';
 import { createPanelService, validatePanel, validateResults } from '../dashboard/panel';
@@ -58,7 +60,9 @@ export type AccessState = {
   panelError?: ApiError;
   results?: Results;
   resultsError?: ApiError;
-  section?: 'panel' | 'assets' | 'evaluations';
+  section?: 'panel' | 'assets' | 'evaluations' | 'risks';
+  riskId?: string;
+  riskQuery?: RiskQuery;
   assetId?: string;
   evaluationId?: string;
   evaluationPage?: number;
@@ -82,7 +86,9 @@ export class WorkspaceStore {
   private controller?: AbortController;
   private target?: string;
   private page = 0;
-  private section: 'panel' | 'assets' | 'evaluations' = 'panel';
+  private section: 'panel' | 'assets' | 'evaluations' | 'risks' = 'panel';
+  private riskId?: string;
+  private riskQuery: RiskQuery = {};
   private assetId?: string;
   private evaluationId?: string;
   private evaluationPage = 0;
@@ -91,7 +97,7 @@ export class WorkspaceStore {
   private dirty = false;
   private draftPending = false;
   private validation?: AbortController;
-  constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService(), readonly evaluations: EvaluationService = createEvaluationService()) {}
+  constructor(private service: AccessService = accessService, readonly inventory: InventoryService = createInventoryService(), readonly evaluations: EvaluationService = createEvaluationService(), readonly risks: RiskService = createRiskService()) {}
   getSnapshot = () => this.state;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private set(state: AccessState) { this.state = state; this.listeners.forEach(listener => listener()); }
@@ -116,7 +122,7 @@ export class WorkspaceStore {
   expire = () => {
     this.setDraftDirty(false);
     this.dispose(); this.target = undefined; this.page = 0;
-    this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
+    this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
     this.set({ status: 'login', notice: 'Tu sesión venció o dejó de estar activa. Vuelve a entrar.' });
   };
   private fail(error: unknown, identity?: Identity, login = false) {
@@ -124,12 +130,12 @@ export class WorkspaceStore {
     if (problem.status === 401 && !login) return this.expire();
     this.set({ status: login ? 'login' : 'error', identity, error: problem });
   }
-  open = async (target?: string, page = 0, panelQuery?: PanelQuery, route?: { section?: 'assets' | 'evaluations'; assetId?: string; evaluationId?: string }) => {
+  open = async (target?: string, page = 0, panelQuery?: PanelQuery, route?: { section?: 'assets' | 'evaluations' | 'risks'; assetId?: string; evaluationId?: string; riskId?: string }) => {
     if (!this.allowNavigation()) return;
     const hadIdentity = Boolean(this.state.identity);
-    if (target?.toLowerCase() !== this.target?.toLowerCase()) { this.inventoryQuery = { estado: 'ACTIVO' }; this.evaluationPage = 0; this.answerQuery = undefined; }
+    if (target?.toLowerCase() !== this.target?.toLowerCase()) { this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.evaluationPage = 0; this.answerQuery = undefined; }
     if (route?.evaluationId && route.evaluationId !== this.answerQuery?.id) this.answerQuery = undefined;
-    this.section = route ? route.section || 'assets' : 'panel'; this.assetId = route?.assetId; this.evaluationId = route?.evaluationId;
+    this.section = route ? route.section || 'assets' : 'panel'; this.assetId = route?.assetId; this.evaluationId = route?.evaluationId; this.riskId = route?.riskId;
     this.target = target; this.page = page;
     const task = this.begin({ status: 'loading' });
     let identity: Identity | undefined;
@@ -142,7 +148,7 @@ export class WorkspaceStore {
         if (!task.current()) return;
         if (company.empresaId.toLowerCase() !== target.toLowerCase()) throw invalid();
         if (this.section !== 'panel' && !capabilities(company).read) throw new ApiError(403, 'ACCESO_DENEGADO', 'No tienes acceso a esta información operativa.');
-        this.set({ status: 'company', identity, company, section: this.section, assetId: this.assetId, inventoryQuery: this.inventoryQuery, evaluationId: this.evaluationId, evaluationPage: this.evaluationPage, answerQuery: this.answerQuery && this.answerQuery.id === this.evaluationId ? this.answerQuery.query : undefined });
+        this.set({ status: 'company', identity, company, section: this.section, riskId: this.riskId, riskQuery: this.riskQuery, assetId: this.assetId, inventoryQuery: this.inventoryQuery, evaluationId: this.evaluationId, evaluationPage: this.evaluationPage, answerQuery: this.answerQuery && this.answerQuery.id === this.evaluationId ? this.answerQuery.query : undefined });
         if (this.section === 'panel' && capabilities(company).read) await this.loadPanel(panelQuery);
       } else {
         const companies = await this.service.companies(page, task.signal);
@@ -159,7 +165,8 @@ export class WorkspaceStore {
       } else this.fail(error, identity);
     }
   };
-  retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'assets' ? { assetId: this.assetId } : this.section === 'evaluations' ? { section: 'evaluations', evaluationId: this.evaluationId } : undefined);
+  retry = () => this.open(this.target, this.page, this.state.panelQuery, this.section === 'risks' ? { section: 'risks', riskId: this.riskId } : this.section === 'assets' ? { assetId: this.assetId } : this.section === 'evaluations' ? { section: 'evaluations', evaluationId: this.evaluationId } : undefined);
+  rememberRiskQuery = (company: string, query: RiskQuery) => { if (company.toLowerCase() === this.target?.toLowerCase()) this.riskQuery = query; };
   rememberEvaluationPage = (company: string, page: number) => { if (company.toLowerCase() === this.target?.toLowerCase()) this.evaluationPage = page; };
   rememberAnswerQuery = (company: string, id: string, query: AnswerQuery) => {
     if (company.toLowerCase() === this.target?.toLowerCase() && id === this.evaluationId) this.answerQuery = { id, query };
@@ -228,7 +235,7 @@ export class WorkspaceStore {
     if (!this.allowNavigation()) return;
     const task = this.begin({ status: 'loading' });
     this.target = undefined; this.page = 0;
-    this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
+    this.riskQuery = {}; this.riskId = undefined; this.inventoryQuery = { estado: 'ACTIVO' }; this.assetId = undefined; this.section = 'panel'; this.evaluationId = undefined; this.evaluationPage = 0; this.answerQuery = undefined;
     try {
       await this.service.logout(task.signal);
       if (task.current()) this.set({ status: 'login', notice: 'Sesión cerrada.' });

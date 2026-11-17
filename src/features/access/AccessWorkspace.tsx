@@ -5,13 +5,14 @@ import { accessMessage, capabilities, roleNames, WorkspaceStore } from './worksp
 import type { Company } from './workspace';
 import { CompanyDashboard } from '../dashboard/CompanyDashboard';
 import { InventoryWorkspace } from '../inventory/InventoryWorkspace';
+const RiskWorkspace = lazy(() => import('../risks/RiskWorkspace'));
 const EvaluationWorkspace = lazy(() => import('../evaluations/EvaluationWorkspace'));
 
 function routeFromHash() {
   const hash = window.location.hash;
   if (!hash || hash === '#/empresas') return {};
-  const route = /^#\/empresas\/([^/]+)(?:\/(activos|evaluaciones)(?:\/([^/]+))?)?$/.exec(hash);
-  return route ? { target: route[1], inventoryRoute: route[2] === 'evaluaciones' ? { section: 'evaluations' as const, evaluationId: route[3] } : route[2] ? { assetId: route[3] } : undefined } : { target: 'invalid' };
+  const route = /^#\/empresas\/([^/]+)(?:\/(activos|evaluaciones|riesgos)(?:\/([^/]+))?)?$/.exec(hash);
+  return route ? { target: route[1], inventoryRoute: route[2] === 'riesgos' ? { section: 'risks' as const, riskId: route[3] } : route[2] === 'evaluaciones' ? { section: 'evaluations' as const, evaluationId: route[3] } : route[2] ? { assetId: route[3] } : undefined } : { target: 'invalid' };
 }
 export function RoleChips({ company }: { company: Company }) {
   return <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }} aria-label="Roles en esta empresa">
@@ -162,7 +163,9 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
         <Button sx={{ alignSelf: 'flex-start' }} onClick={() => navigate()}>Cambiar empresa</Button>
       </Stack>
       {(!state.section || state.section === 'panel') && <CompanyEntry company={state.company} />}
-      {capabilities(state.company).read && (state.section === 'evaluations'
+      {capabilities(state.company).read && (state.section === 'risks'
+        ? <Suspense fallback={<Typography role="status">Abriendo riesgos…</Typography>}><RiskWorkspace key={state.company.empresaId} company={state.company} riskId={state.riskId} query={state.riskQuery} service={store.risks} scope={store.scopeSignal} onAuthorization={store.authorizationLost} onQuery={query => store.rememberRiskQuery(state.company!.empresaId, query)} /></Suspense>
+        : state.section === 'evaluations'
         ? <Suspense fallback={<Typography role="status">Abriendo evaluaciones…</Typography>}><EvaluationWorkspace key={state.company.empresaId} company={state.company} evaluationId={state.evaluationId} page={state.evaluationPage || 0}
             service={store.evaluations} scope={store.scopeSignal} query={state.answerQuery} onAuthorization={store.authorizationLost} onPage={page => store.rememberEvaluationPage(state.company!.empresaId, page)}
             onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation}

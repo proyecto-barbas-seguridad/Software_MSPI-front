@@ -165,6 +165,7 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
       {capabilities(state.company).read && (state.section === 'evaluations'
         ? <Suspense fallback={<Typography role="status">Abriendo evaluaciones…</Typography>}><EvaluationWorkspace key={state.company.empresaId} company={state.company} evaluationId={state.evaluationId} page={state.evaluationPage || 0}
             service={store.evaluations} scope={store.scopeSignal} query={state.answerQuery} onAuthorization={store.authorizationLost} onPage={page => store.rememberEvaluationPage(state.company!.empresaId, page)}
+            onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation}
             onQuery={query => store.rememberAnswerQuery(state.company!.empresaId, state.evaluationId!, query)} /></Suspense>
         : state.section === 'assets'
         ? <InventoryWorkspace key={state.company.empresaId} company={state.company} assetId={state.assetId} query={state.inventoryQuery} service={store.inventory}

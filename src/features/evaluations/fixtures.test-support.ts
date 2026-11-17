@@ -12,7 +12,9 @@ export const results: Results = { evaluacionId: evaluation.evaluacionId, revisio
   dominios: [], clausulas: [{ grupo: 'CLAUSULA_4', resultado: { total: 1, aplicables: 1, evaluados: 0, pendientes: 1, sinDecidir: 0, noAplican: 0, puntaje: null, avance: 0, estado: 'PENDIENTE' } }] };
 export const evidence = { evidenciaId: '00000000-0000-0000-0000-000000000081', nombreOriginal: 'acta-prueba.pdf', tipoDetectado: 'application/pdf' as const, tamanoBytes: 14, descripcion: 'Adjunto ilustrativo', creadaPor: evaluation.creadaPor, creadaEn: evaluation.creadaEn, estadoInspeccion: 'LIMPIA' as const };
 export function evaluationService(overrides: Partial<EvaluationService> = {}): EvaluationService {
-  return { list: vi.fn().mockImplementation(async (_, pagina) => ({ elementos: [evaluation], pagina, tamano: 5, hayMas: false })), detail: vi.fn().mockResolvedValue(evaluation),
+  return { create: vi.fn().mockResolvedValue(evaluation), editAnswer: vi.fn().mockResolvedValue({ ...answer, revisionEvaluacion: 5 }),
+    findings: vi.fn().mockResolvedValue({ elementos: [], pagina: 0, tamano: 5, hayMas: false }), createFinding: vi.fn(), editFinding: vi.fn(),
+    catalogs: vi.fn().mockResolvedValue({ elementos: [], pagina: 0, tamano: 5, hayMas: false }), methods: vi.fn().mockResolvedValue({ elementos: [], pagina: 0, tamano: 5, hayMas: false }), responsibles: vi.fn().mockResolvedValue({ elementos: [], pagina: 0, tamano: 5, hayMas: false }), list: vi.fn().mockImplementation(async (_, pagina) => ({ elementos: [evaluation], pagina, tamano: 5, hayMas: false })), detail: vi.fn().mockResolvedValue(evaluation),
     answers: vi.fn().mockImplementation(async (_, __, query) => ({ elementos: answers.filter(item => (!query.tipo || query.tipo === item.tipo) && (!query.grupo || query.grupo === item.grupo)), pagina: query.pagina || 0, tamano: 5, hayMas: false })),
     results: vi.fn().mockResolvedValue(results), evidence: vi.fn().mockImplementation(async (_, __, ___, pagina) => ({ elementos: [evidence], pagina, tamano: 5, hayMas: false })),
     file: vi.fn().mockResolvedValue(new Blob(['%PDF-1.7\n%%EOF'], { type: 'application/pdf' })), ...overrides };

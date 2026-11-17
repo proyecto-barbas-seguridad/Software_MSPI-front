@@ -1,14 +1,18 @@
 import { Alert, Box, Button, Chip, Link, Paper, Stack, Typography } from '@mui/material';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { ApiError } from '../../shared/api/client';
-import { accessMessage } from '../access/workspace';
+import { accessMessage, capabilities } from '../access/workspace';
 import type { Company } from '../access/workspace';
 import { EvaluationResults } from '../dashboard/CompanyDashboard';
 import { date, labels, timestamp } from '../dashboard/panel';
-import { EvaluationStore, states, validateEvidence } from './evaluations';
-import type { Answer, AnswerQuery, Evidence, EvidencePage, EvaluationService } from './evaluations';
+import { EvaluationStore, states, validateEvidence, validateFinding, validatePage } from './evaluations';
+import type { Answer, AnswerQuery, Evidence, EvidencePage, EvaluationService, Finding, FindingPage } from './evaluations';
 
+import type { Editor } from './EvaluationEditor';
+const EvaluationEditor = lazy(() => import('./EvaluationEditor'));
+const noop = () => {};
+const allow = () => true;
 const fields = { width: '100%', minHeight: 44, px: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper', color: 'text.primary', font: 'inherit' };
 function Pager({ label, page, more, load }: { label: string; page: number; more: boolean; load: (page: number) => void }) {
   return <Stack direction="row" useFlexGap sx={{ gap: 1, alignItems: 'center', flexWrap: 'wrap' }} aria-label={'Paginación de ' + label}>
@@ -26,16 +30,18 @@ function ErrorNotice({ error }: { error: ApiError }) {
         : error.status === 404 ? 'La evaluación o el recurso no está disponible en esta empresa.' : accessMessage(error);
   return <Alert severity="error">{message}{error.correlationId && ` Referencia de soporte: ${error.correlationId}`}{error.retryAfter !== undefined && ` El servidor indicó esperar ${error.retryAfter} segundos antes de reintentar.`}</Alert>;
 }
-export default function EvaluationWorkspace({ company, evaluationId, page = 0, query, service, scope, onAuthorization, onPage, onQuery }: {
+export default function EvaluationWorkspace({ company, evaluationId, page = 0, query, service, scope, onAuthorization, onPage, onQuery, onDirty = noop, onPending = noop, onLeave = allow }: {
   company: Company; evaluationId?: string; page?: number; service: EvaluationService; onAuthorization: (error: ApiError) => void; onPage: (page: number) => void;
   query?: AnswerQuery; onQuery?: (query: AnswerQuery) => void;
-  scope?: AbortSignal;
+  scope?: AbortSignal; onDirty?: (dirty: boolean) => void; onPending?: (pending: boolean) => void; onLeave?: () => boolean;
 }) {
+  const [editor, setEditor] = useState<Editor>();
+  const [notice, setNotice] = useState<string>();
   const [store] = useState(() => new EvaluationStore(company.empresaId, service, onAuthorization, scope));
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const heading = useRef<HTMLHeadingElement>(null);
   const base = '#/empresas/' + company.empresaId + '/evaluaciones';
-  useEffect(() => { if (evaluationId) void store.detail(evaluationId, query); else void store.list(page); return () => store.dispose(); }, [store, evaluationId, page, query]);
+  useEffect(() => { setEditor(undefined); if (evaluationId) void store.detail(evaluationId, query); else void store.list(page); return () => store.dispose(); }, [store, evaluationId, page, query]);
   useEffect(() => { if (state.status !== 'loading') heading.current?.focus(); }, [state.status]);
   const list = (page: number) => { onPage(page); void store.list(page); };
   const detail = (query: AnswerQuery = {}) => { onQuery?.(query); void store.detail(evaluationId!, query); };
@@ -44,12 +50,20 @@ export default function EvaluationWorkspace({ company, evaluationId, page = 0, q
     detail({ pagina: 0, tipo: type === 'CONTROL' || type === 'CLAUSULA' ? type : undefined, grupo: String(form.get('grupo') || '').trim() || undefined });
   }
   const evaluation = state.evaluation;
+  if (editor) return <Suspense fallback={<Typography role="status">Abriendo formulario…</Typography>}><EvaluationEditor companyId={company.empresaId} mode={editor} evaluation={evaluation} service={service} scope={scope}
+    onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending} onCancel={() => { if (onLeave()) setEditor(undefined); }} onSaved={created => {
+      setEditor(undefined); if (created) window.location.hash = base + '/' + created.evaluacionId;
+      else { setNotice('Consulta actualizada del servidor. Revisa el estado antes de otra escritura.'); void store.retry(); }
+    }} /></Suspense>;
+  const editable = capabilities(company).write && evaluation?.estado === 'BORRADOR' && !state.differingRevisions;
   return <Stack component="section" aria-labelledby="evaluations-title" spacing={3} aria-busy={state.status === 'loading'}>
     <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
       <Typography id="evaluations-title" variant="h2" tabIndex={-1} ref={heading}>{evaluationId ? 'Ficha de evaluación' : 'Evaluaciones'}</Typography>
       {evaluationId && <Link href={base}>Volver a evaluaciones</Link>}
       <Button disabled={state.status === 'loading'} onClick={() => { void store.retry(); }}>Actualizar {evaluationId ? 'evaluación' : 'listado'}</Button>
     </Stack>
+    {!evaluationId && capabilities(company).write && <Button variant="contained" sx={{ alignSelf: 'flex-start' }} onClick={() => setEditor({ kind: 'create' })}>Crear evaluación</Button>}
+    {notice && <Alert severity="info">{notice}</Alert>}
     <Typography color="text.secondary">Consulta de la empresa activa. Las notas cero, los pendientes y las exclusiones justificadas se presentan por separado.</Typography>
     {state.status === 'loading' && <Typography role="status">Consultando {evaluationId ? 'evaluación, respuestas y resultados' : 'evaluaciones'}…</Typography>}
     {state.error && <ErrorNotice error={state.error} />}
@@ -87,14 +101,14 @@ export default function EvaluationWorkspace({ company, evaluationId, page = 0, q
       {state.answersError && <ErrorNotice error={state.answersError} />}
       {state.answers && <>
         {!state.answers.elementos.length && <Alert severity="info">No hay respuestas en esta página con los filtros aplicados.</Alert>}
-        {state.answers.elementos.map(answer => <AnswerCard key={answer.respuestaId} answer={answer} company={company} evaluationId={evaluation.evaluacionId} service={service} scope={scope} onAuthorization={onAuthorization} />)}
+        {state.answers.elementos.map(answer => <AnswerCard key={answer.respuestaId} answer={answer} company={company} evaluationId={evaluation.evaluacionId} service={service} scope={scope} onAuthorization={onAuthorization} editable={Boolean(editable)} revision={evaluation.revision} onEdit={() => setEditor({ kind: 'answer', answer })} onFinding={finding => setEditor({ kind: 'finding', answer, finding })} />)}
         <Pager label="respuestas" page={state.answers.pagina} more={state.answers.hayMas} load={pagina => detail({ ...state.query, pagina })} />
       </>}
     </>}
   </Stack>;
 }
-function AnswerCard({ answer, company, evaluationId, service, scope, onAuthorization }: { answer: Answer; company: Company; evaluationId: string; service: EvaluationService; scope?: AbortSignal; onAuthorization: (error: ApiError) => void }) {
-  const [open, setOpen] = useState(false); const value = answer.respuesta;
+function AnswerCard({ answer, company, evaluationId, service, scope, onAuthorization, editable, revision, onEdit, onFinding }: { editable: boolean; revision: number; onEdit: () => void; onFinding: (finding?: Finding) => void; answer: Answer; company: Company; evaluationId: string; service: EvaluationService; scope?: AbortSignal; onAuthorization: (error: ApiError) => void }) {
+  const [open, setOpen] = useState(false); const [findingsOpen, setFindingsOpen] = useState(false); const value = answer.respuesta;
   return <Paper component="article" aria-label={'Respuesta ' + answer.codigo} sx={{ p: 2 }}><Stack spacing={2}>
     <Typography variant="overline">{answer.tipo === 'CONTROL' ? 'Control' : 'Cláusula'} · {labels[answer.grupo] || answer.grupo}</Typography>
     <Typography variant="h2" component="h4" sx={{ overflowWrap: 'anywhere' }}>{answer.codigo} · {answer.titulo}</Typography>
@@ -105,6 +119,10 @@ function AnswerCard({ answer, company, evaluationId, service, scope, onAuthoriza
       <Typography component="dt">Fundamento</Typography><Typography component="dd">{value.fundamento || (value.aplicabilidad === 'NO_APLICA' ? 'No registrado' : 'Pendiente')}</Typography>
     </Details>
     {answer.respuestaAnteriorId && <Alert severity={answer.heredadaConfirmada ? 'info' : 'warning'}>{answer.heredadaConfirmada ? 'Respuesta heredada confirmada.' : 'Respuesta heredada pendiente de confirmación en esta evaluación.'}</Alert>}
+    {editable && <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}><Button onClick={onEdit}>Diligenciar {answer.codigo}</Button><Button onClick={() => onFinding()}>Registrar hallazgo en {answer.codigo}</Button></Stack>}
+    <Box component="details" onToggle={event => setFindingsOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Ver hallazgos de {answer.codigo}</Typography>
+      {findingsOpen && <FindingsList company={company} evaluationId={evaluationId} answer={answer} service={service} scope={scope} onAuthorization={onAuthorization} editable={editable} revision={revision} onEdit={onFinding} />}
+    </Box>
     <Box component="details" onToggle={event => setOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Ver evidencias de {answer.codigo}</Typography>
       {open && <EvidenceList key={answer.respuestaId} company={company} evaluationId={evaluationId} responseId={answer.respuestaId} service={service} scope={scope} onAuthorization={onAuthorization} />}
     </Box>
@@ -161,5 +179,27 @@ function EvidenceList({ company, evaluationId, responseId, service, scope, onAut
         <Button disabled={Boolean(downloading)} onClick={() => { void download(item); }} aria-label={'Descargar ' + item.nombreOriginal}>{downloading === item.evidenciaId ? 'Descargando…' : 'Descargar archivo'}</Button>
       </Box>)}</Stack><Pager label="evidencias" page={data.pagina} more={data.hayMas} load={setPage} />
     </>}
+  </Stack>;
+}
+
+function FindingsList({ company, evaluationId, answer, service, scope, onAuthorization, editable, revision, onEdit }: { company: Company; evaluationId: string; answer: Answer; service: EvaluationService; scope?: AbortSignal; onAuthorization: (error: ApiError) => void; editable: boolean; revision: number; onEdit: (finding: Finding) => void }) {
+  const [page, setPage] = useState(0); const [attempt, setAttempt] = useState(0); const [data, setData] = useState<FindingPage>(); const [error, setError] = useState<ApiError>(); const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const controller = new AbortController(); setLoading(true); setData(undefined); setError(undefined);
+    void service.findings(company.empresaId, evaluationId, answer.respuestaId, page, controller.signal).then(result => {
+      validatePage(result, page); result.elementos.forEach(item => validateFinding(item, answer.respuestaId));
+      if (!controller.signal.aborted && !scope?.aborted) setData(result);
+    }).catch(failure => { if (controller.signal.aborted || scope?.aborted) return; const problem = failure instanceof ApiError ? failure : new ApiError(502, 'RESPUESTA_INVALIDA', 'No se pudieron validar los hallazgos.'); setError(problem); if ([401, 403].includes(problem.status)) onAuthorization(problem); })
+      .finally(() => { if (!controller.signal.aborted && !scope?.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [company.empresaId, evaluationId, answer.respuestaId, service, page, attempt, scope, onAuthorization]);
+  return <Stack spacing={2} sx={{ mt: 2 }} aria-busy={loading}>
+    {loading && <Typography role="status">Consultando hallazgos…</Typography>}{error && <ErrorNotice error={error} />}<Button disabled={loading} onClick={() => setAttempt(attempt + 1)}>Actualizar hallazgos</Button>
+    {data && <>{!data.elementos.length && <Typography>No hay hallazgos en esta página.</Typography>}{data.elementos.map(item => <Box component="article" key={item.hallazgoId}>
+      <Typography sx={{ fontWeight: 600, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{item.hallazgo.descripcionBrecha}</Typography><Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{item.hallazgo.recomendacion || 'Sin recomendación registrada'}</Typography>
+      <Typography>Revisión: {item.revisionEvaluacion} · {timestamp(item.actualizadaEn, company.zonaHoraria)}</Typography>
+      {item.revisionEvaluacion !== revision && <Alert severity="warning">El hallazgo pertenece a otra revisión. Actualiza la evaluación antes de editar.</Alert>}
+      {editable && <Button disabled={item.revisionEvaluacion !== revision} onClick={() => onEdit(item)}>Editar hallazgo</Button>}
+    </Box>)}<Pager label="hallazgos" page={data.pagina} more={data.hayMas} load={setPage} /></>}
   </Stack>;
 }

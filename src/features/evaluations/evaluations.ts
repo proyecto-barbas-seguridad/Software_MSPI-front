@@ -10,6 +10,14 @@ export type AnswerPage = components['schemas']['EvaluationResponsePage'];
 export type AnswerQuery = NonNullable<operations['listarRespuestasEvaluacion']['parameters']['query']>;
 export type Evidence = components['schemas']['ResponseEvidence'];
 export type EvidencePage = components['schemas']['ResponseEvidencePage'];
+export type NewEvaluation = components['schemas']['CreateEvaluationDraft'];
+export type EditAnswer = components['schemas']['EditEvaluationResponse'];
+export type Finding = components['schemas']['EvaluationFinding'];
+export type FindingPage = components['schemas']['EvaluationFindingPage'];
+export type EditFinding = components['schemas']['EditEvaluationFinding'];
+export type CatalogPage = components['schemas']['ReferenceCatalogPage'];
+export type MethodPage = components['schemas']['ReferenceMethodPage'];
+export type ResponsiblePage = components['schemas']['CompanyResponsiblePage'];
 export const states = { BORRADOR: 'Borrador', EN_REVISION: 'En revisión', CERRADA: 'Cerrada' };
 export const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const count = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
@@ -18,6 +26,14 @@ const optionalText = (value: unknown) => value === null || text(value);
 const instant = (value: string) => Number.isFinite(Date.parse(value));
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar la información de la evaluación.');
 export interface EvaluationService {
+  create(company: string, body: NewEvaluation, signal: AbortSignal): Promise<Evaluation>;
+  editAnswer(company: string, id: string, response: string, body: EditAnswer, signal: AbortSignal): Promise<Answer>;
+  findings(company: string, id: string, response: string, page: number, signal: AbortSignal): Promise<FindingPage>;
+  createFinding(company: string, id: string, response: string, body: EditFinding, signal: AbortSignal): Promise<Finding>;
+  editFinding(company: string, id: string, response: string, finding: string, body: EditFinding, signal: AbortSignal): Promise<Finding>;
+  catalogs(company: string, page: number, signal: AbortSignal): Promise<CatalogPage>;
+  methods(company: string, page: number, signal: AbortSignal): Promise<MethodPage>;
+  responsibles(company: string, page: number, signal: AbortSignal): Promise<ResponsiblePage>;
   list(company: string, page: number, signal: AbortSignal): Promise<EvaluationPage>;
   detail(company: string, id: string, signal: AbortSignal): Promise<Evaluation>;
   answers(company: string, id: string, query: AnswerQuery, signal: AbortSignal): Promise<AnswerPage>;
@@ -26,6 +42,14 @@ export interface EvaluationService {
   file(company: string, id: string, responseId: string, evidenceId: string, signal: AbortSignal): Promise<Blob>;
 }
 export const createEvaluationService = (client = api): EvaluationService => ({
+  create: async (empresaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones', { path: { empresaId }, body, signal })).data,
+  editAnswer: async (empresaId, evaluacionId, respuestaId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}', { path: { empresaId, evaluacionId, respuestaId }, body, signal })).data,
+  findings: async (empresaId, evaluacionId, respuestaId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/hallazgos', { path: { empresaId, evaluacionId, respuestaId }, query: { pagina, tamano: 5 }, signal })).data,
+  createFinding: async (empresaId, evaluacionId, respuestaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/hallazgos', { path: { empresaId, evaluacionId, respuestaId }, body, signal })).data,
+  editFinding: async (empresaId, evaluacionId, respuestaId, hallazgoId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas/{respuestaId}/hallazgos/{hallazgoId}', { path: { empresaId, evaluacionId, respuestaId, hallazgoId }, body, signal })).data,
+  catalogs: async (empresaId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/catalogos', { path: { empresaId }, query: { pagina, tamano: 5, disponibleNuevos: true }, signal })).data,
+  methods: async (empresaId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/metodologias', { path: { empresaId }, query: { pagina, tamano: 5, disponibleNuevos: true }, signal })).data,
+  responsibles: async (empresaId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/responsables', { path: { empresaId }, query: { pagina, tamano: 5 }, signal })).data,
   list: async (empresaId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/evaluaciones', { path: { empresaId }, query: { pagina, tamano: 5 }, signal })).data,
   detail: async (empresaId, evaluacionId, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}', { path: { empresaId, evaluacionId }, signal })).data,
   answers: async (empresaId, evaluacionId, query, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/evaluaciones/{evaluacionId}/respuestas', { path: { empresaId, evaluacionId }, query, signal })).data,
@@ -116,4 +140,11 @@ export class EvaluationStore {
     } catch (error) { if (task.current()) this.fail(error, base); }
   };
   retry = () => this.id ? this.detail(this.id, this.state.query) : this.list(this.state.page);
+}
+
+export function validateFinding(value: Finding, response: string) {
+  if (!value || !uuid.test(value.hallazgoId) || value.respuestaId !== response || !count(value.revisionEvaluacion)
+    || !value.hallazgo || !text(value.hallazgo.descripcionBrecha) || !value.hallazgo.descripcionBrecha.trim()
+    || !optionalText(value.hallazgo.recomendacion) || !instant(value.creadaEn) || !instant(value.actualizadaEn)) throw invalid();
+  return value;
 }

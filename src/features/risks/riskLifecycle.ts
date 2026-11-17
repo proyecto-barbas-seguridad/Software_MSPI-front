@@ -4,12 +4,7 @@ import type { Inherent, Residual, Risk, RiskAction, RiskService, RiskTransition 
 export type RiskLifecycleMode = { kind: 'accept' } | { kind: 'transition'; target: RiskTransition['destino'] };
 export const transitions: Record<Risk['estado'], RiskTransition['destino'][]> = { IDENTIFICADO: [], EN_ANALISIS: ['EN_TRATAMIENTO', 'EN_SEGUIMIENTO'], EN_TRATAMIENTO: ['EN_SEGUIMIENTO'], EN_SEGUIMIENTO: ['EN_ANALISIS', 'EN_TRATAMIENTO', 'CERRADO'], CERRADO: [] };
 export function transitionLabel(risk: Risk, target: RiskTransition['destino']) { return target === 'CERRADO' ? 'Cerrar riesgo' : target === 'EN_ANALISIS' ? 'Volver a análisis' : target === 'EN_TRATAMIENTO' ? risk.estado === 'EN_SEGUIMIENTO' ? 'Volver a tratamiento' : 'Pasar a tratamiento' : 'Pasar a seguimiento'; }
-export function companyDay(zone: string, now = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
-  const part = (name: string) => parts.find(item => item.type === name)!.value;
-  return `${part('year')}-${part('month')}-${part('day')}`;
-}
-export function calendarDay(value: string) { return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value; }
+export { companyDay, calendarDay } from '../../shared/date/companyDay';
 export async function acceptanceContext(company: string, risk: Risk, service: RiskService, signal: AbortSignal, scope?: AbortSignal) {
   if (risk.estado === 'CERRADO' || risk.detalle.tratamientoPropuesto !== 'ACEPTAR' || !risk.inherenteVigenteId || risk.requiereRevision) throw new ApiError(409, 'VALORACIONES_RIESGO_NO_VIGENTES', 'La aceptación requiere tratamiento aceptar y valoraciones inherente y residual vigentes.');
   const active = () => { if (signal.aborted || scope?.aborted) throw new DOMException('Cancelada', 'AbortError'); };

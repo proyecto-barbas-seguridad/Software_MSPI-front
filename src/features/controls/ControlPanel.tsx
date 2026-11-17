@@ -1,10 +1,11 @@
 import { Alert, Box, Button, Paper, Stack, Typography } from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ApiError } from '../../shared/api/client';
 import { date, timestamp } from '../dashboard/panel';
 import { controlLabels, uuid, validateControl, validatePage, validateVerification, validateVersion } from './controls';
 import type { Control, ControlService, Version } from './controls';
+const ControlEvidenceList = lazy(() => import('./ControlEvidenceList'));
 export type ControlAccess = { scope?: AbortSignal; onAuthorization: (error: ApiError) => void };
 export function useControlRead<T>(load: (signal: AbortSignal) => Promise<T>, { scope, onAuthorization }: ControlAccess) {
   const [data, setData] = useState<T>(); const [error, setError] = useState<ApiError>(); const [loading, setLoading] = useState(true); const [attempt, setAttempt] = useState(0);
@@ -31,13 +32,13 @@ export default function ControlPanel({ company, controlId, service, zone, scope,
     {state.data && <ControlDetail company={company} control={state.data} service={service} zone={zone} scope={scope} onAuthorization={onAuthorization} />}
   </Stack>;
 }
-export function ControlDetail({ company, control, service, zone, scope, onAuthorization }: Omit<Props, 'controlId'> & { control: Control }) {
+export function ControlDetail({ company, control, service, zone, scope, onAuthorization, expand }: Omit<Props, 'controlId'> & { control: Control; expand?: 'evidence' | 'verifications' }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   return <><Typography variant="h2" component="h4">{control.versionActual.detalle.nombre}</Typography><Details rows={[
       ['Estado de implementación', controlLabels[control.estado]], ['Resultado vigente del servidor', controlLabels[control.resultadoVigente]], ['Revisión de implementación', control.revision],
     ]} />{control.causaSinVigencia && <Alert severity="warning">Sin vigencia: {controlLabels[control.causaSinVigencia]}. Consulta el contexto y las evidencias antes de utilizar esta verificación.</Alert>}
       <Typography variant="body2">Esta es una implementación empresarial. Su estado y verificación no son la nota del catálogo ni una reducción automática del riesgo.</Typography>
-      <VersionBlock {...{ company, service, zone, scope, onAuthorization }} control={control} version={control.versionActual} />
+      <VersionBlock {...{ company, service, zone, scope, onAuthorization }} control={control} version={control.versionActual} expand={expand} />
       <Box component="details"><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Referencias de catálogo e implementación</Typography><Details rows={[
         ['Implementación', control.implementacionId], ['Versión de catálogo', control.versionCatalogoId], ['Elemento de catálogo', control.elementoId], ['Última verificación (referencia)', control.ultimaVerificacionId || 'No registrada'],
       ]} /></Box>
@@ -47,14 +48,15 @@ export function ControlDetail({ company, control, service, zone, scope, onAuthor
     </>;
 }
 
-function VersionBlock({ company, service, zone, scope, onAuthorization, control, version }: Omit<Props, 'controlId'> & { control: Control; version: Version }) {
-  const [open, setOpen] = useState(false);
+function VersionBlock({ company, service, zone, scope, onAuthorization, control, version, expand }: Omit<Props, 'controlId'> & { control: Control; version: Version; expand?: 'evidence' | 'verifications' }) {
+  const [open, setOpen] = useState(expand === 'verifications'); const [evidenceOpen, setEvidenceOpen] = useState(expand === 'evidence');
   return <Paper component="article" sx={{ p: 2 }}><Stack spacing={2}><Typography variant="h2" component="h5">Versión {version.numero} · {version.versionId === control.versionActual.versionId ? 'Actual según la ficha' : 'Histórica'}</Typography><Details rows={[
     ['Descripción', version.detalle.descripcion], ['Alcance', version.detalle.alcance], ['Trabajo de implementación', version.detalle.trabajo], ['Responsable de negocio', version.detalle.responsableId], ['Tipo', version.detalle.tipo ? controlLabels[version.detalle.tipo] : 'Pendiente'], ['Modo', version.detalle.modo ? controlLabels[version.detalle.modo] : 'Pendiente'], ['Motivo de cambio', version.motivoCambio || 'No registrado'], ['Creada', timestamp(version.creadaEn, zone)],
     ['Aplicación registrada', version.aplicacion ? date(version.aplicacion.fechaAplicacion) : 'Pendiente de registrar'],
   ]} />{version.aplicacion && <Typography>Evidencia de aplicación: {version.aplicacion.evidenciaId} · Registrada por: {version.aplicacion.registradaPor} · {timestamp(version.aplicacion.registradaEn, zone)}</Typography>}
     <Box component="details"><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Referencias de esta versión de control</Typography><Typography>Versión: {version.versionId} · Creada por: {version.creadaPor}</Typography></Box>
-    <Box component="details" onToggle={event => setOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Verificaciones de versión {version.numero}</Typography>{open && <Verifications {...{ company, service, zone, scope, onAuthorization, control, version }} />}</Box>
+    <Box component="details" open={evidenceOpen} onToggle={event => setEvidenceOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Evidencias de versión {version.numero}</Typography>{evidenceOpen && <Suspense fallback={<Typography role="status">Abriendo evidencias…</Typography>}><ControlEvidenceList company={company} controlId={control.implementacionId} versionId={version.versionId} zone={zone} service={service} scope={scope} onAuthorization={onAuthorization} /></Suspense>}</Box>
+    <Box component="details" open={open} onToggle={event => setOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Verificaciones de versión {version.numero}</Typography>{open && <Verifications {...{ company, service, zone, scope, onAuthorization, control, version }} />}</Box>
   </Stack></Paper>;
 }
 function Versions({ company, service, zone, scope, onAuthorization, control }: Omit<Props, 'controlId'> & { control: Control }) {

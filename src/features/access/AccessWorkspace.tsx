@@ -5,6 +5,7 @@ import { accessMessage, capabilities, roleNames, WorkspaceStore } from './worksp
 import type { Company } from './workspace';
 import { CompanyDashboard } from '../dashboard/CompanyDashboard';
 import { InventoryWorkspace } from '../inventory/InventoryWorkspace';
+const ActionWorkspace = lazy(() => import('../actions/ActionWorkspace'));
 const ControlWorkspace = lazy(() => import('../controls/ControlWorkspace'));
 const RiskWorkspace = lazy(() => import('../risks/RiskWorkspace'));
 const EvaluationWorkspace = lazy(() => import('../evaluations/EvaluationWorkspace'));
@@ -12,8 +13,8 @@ const EvaluationWorkspace = lazy(() => import('../evaluations/EvaluationWorkspac
 function routeFromHash() {
   const hash = window.location.hash;
   if (!hash || hash === '#/empresas') return {};
-  const route = /^#\/empresas\/([^/]+)(?:\/(activos|evaluaciones|riesgos|controles)(?:\/([^/]+))?)?$/.exec(hash);
-  return route ? { target: route[1], inventoryRoute: route[2] === 'controles' ? { section: 'controls' as const, controlId: route[3] } : route[2] === 'riesgos' ? { section: 'risks' as const, riskId: route[3] } : route[2] === 'evaluaciones' ? { section: 'evaluations' as const, evaluationId: route[3] } : route[2] ? { assetId: route[3] } : undefined } : { target: 'invalid' };
+  const route = /^#\/empresas\/([^/]+)(?:\/(activos|evaluaciones|riesgos|controles|acciones)(?:\/([^/]+))?)?$/.exec(hash);
+  return route ? { target: route[1], inventoryRoute: route[2] === 'acciones' ? { section: 'actions' as const, actionId: route[3] } : route[2] === 'controles' ? { section: 'controls' as const, controlId: route[3] } : route[2] === 'riesgos' ? { section: 'risks' as const, riskId: route[3] } : route[2] === 'evaluaciones' ? { section: 'evaluations' as const, evaluationId: route[3] } : route[2] ? { assetId: route[3] } : undefined } : { target: 'invalid' };
 }
 export function RoleChips({ company }: { company: Company }) {
   return <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }} aria-label="Roles en esta empresa">
@@ -164,7 +165,8 @@ export function AccessWorkspace({ store }: { store: WorkspaceStore }) {
         <Button sx={{ alignSelf: 'flex-start' }} onClick={() => navigate()}>Cambiar empresa</Button>
       </Stack>
       {(!state.section || state.section === 'panel') && <CompanyEntry company={state.company} />}
-      {capabilities(state.company).read && (state.section === 'controls'
+      {state.section === 'actions' && capabilities(state.company).actions && <Suspense fallback={<Typography role="status">Abriendo acciones…</Typography>}><ActionWorkspace key={state.company.empresaId} company={state.company} actionId={state.actionId} initialPage={state.actionPage} service={store.actions} scope={store.scopeSignal} onAuthorization={store.authorizationLost} onPage={page => store.rememberActionPage(state.company!.empresaId, page)} /></Suspense>}
+      {capabilities(state.company).read && state.section !== 'actions' && (state.section === 'controls'
         ? <Suspense fallback={<Typography role="status">Abriendo controles…</Typography>}><ControlWorkspace key={state.company.empresaId} company={state.company} controlId={state.controlId} service={store.controls} scope={store.scopeSignal} onAuthorization={store.authorizationLost} onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation} /></Suspense>
         : state.section === 'risks'
         ? <Suspense fallback={<Typography role="status">Abriendo riesgos…</Typography>}><RiskWorkspace key={state.company.empresaId} company={state.company} onDirty={store.setDraftDirty} onPending={store.setDraftPending} onLeave={store.allowNavigation} riskId={state.riskId} query={state.riskQuery} controls={store.controls} service={store.risks} scope={store.scopeSignal} onAuthorization={store.authorizationLost} onQuery={query => store.rememberRiskQuery(state.company!.empresaId, query)} /></Suspense>
@@ -188,7 +190,8 @@ function CompanyEntry({ company }: { company: Company }) {
     <Typography variant="h2">{permissions.read ? 'Espacio empresarial' : 'Mis acciones'}</Typography>
     <Typography>{permissions.read
       ? permissions.write ? 'Tu membresía permite gestionar información. Las consultas existentes están disponibles en los enlaces siguientes.' : 'Tu membresía permite consultar información en modo de lectura.'
-      : 'Tu acceso se limita a las acciones asignadas y su contexto mínimo. La pantalla de tareas estará disponible en su historia de implementación.'}</Typography>
+      : 'Tu acceso se limita a las acciones asignadas y su contexto mínimo. Abre Mis acciones para consultar las tareas que mantienes asignadas.'}</Typography>
+    {!permissions.read && permissions.actions && <Link href={'#/empresas/' + company.empresaId + '/acciones'}>Abrir mis acciones</Link>}
     {permissions.admin && <Typography>También tienes permisos de administración de empresa. Su pantalla se incorporará en la historia correspondiente.</Typography>}
     {permissions.read && <Stack direction="row" useFlexGap sx={{ gap: 2, flexWrap: 'wrap' }}>
       <Link href={url}>Resumen de empresa</Link><Link href={'#/empresas/' + company.empresaId + '/activos'}>Activos</Link><Link href={'#/empresas/' + company.empresaId + '/evaluaciones'}>Evaluaciones</Link>

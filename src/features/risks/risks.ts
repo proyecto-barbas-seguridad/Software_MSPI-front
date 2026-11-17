@@ -1,6 +1,9 @@
 import { api, ApiError } from '../../shared/api/client';
 import type { components, operations } from '../../shared/api/generated/schema';
 export type Risk = components['schemas']['Risk'];
+export type NewRisk = components['schemas']['CreateRisk'];
+export type EditRisk = components['schemas']['EditRisk'];
+export type Reference = { id: string; label: string };
 export type RiskPage = components['schemas']['RiskPage'];
 export type RiskQuery = NonNullable<operations['listarRiesgos']['parameters']['query']>;
 export type Inherent = components['schemas']['InherentAssessment'];
@@ -23,6 +26,11 @@ const instant = (value: unknown) => typeof value === 'string' && Number.isFinite
 const date = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && instant(value) && new Date(value).toISOString().slice(0, 10) === value;
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar la información de riesgos.');
 export interface RiskService {
+  create(company: string, body: NewRisk, signal: AbortSignal): Promise<Risk>;
+  edit(company: string, risk: string, body: EditRisk, signal: AbortSignal): Promise<Risk>;
+  analyze(company: string, risk: string, revision: number, signal: AbortSignal): Promise<Risk>;
+  assets(company: string, page: number, text: string, signal: AbortSignal): Promise<Page<Reference>>;
+  responsibles(company: string, page: number, signal: AbortSignal): Promise<Page<Reference>>;
   list(company: string, query: RiskQuery, signal: AbortSignal): Promise<RiskPage>;
   detail(company: string, risk: string, signal: AbortSignal): Promise<Risk>;
   inherent(company: string, risk: string, page: number, signal: AbortSignal): Promise<Page<Inherent>>;
@@ -31,6 +39,17 @@ export interface RiskService {
   acceptances(company: string, risk: string, page: number, signal: AbortSignal): Promise<Page<Acceptance>>;
 }
 export const createRiskService = (client = api): RiskService => ({
+  create: async (empresaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos', { path: { empresaId }, body, signal })).data,
+  edit: async (empresaId, riesgoId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}', { path: { empresaId, riesgoId }, body, signal })).data,
+  analyze: async (empresaId, riesgoId, revisionEsperada, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/iniciar-analisis', { path: { empresaId, riesgoId }, body: { revisionEsperada }, signal })).data,
+  assets: async (empresaId, pagina, texto, signal) => {
+    const result = validatePage((await client.request('get', '/api/v1/empresas/{empresaId}/activos', { path: { empresaId }, query: { pagina, tamano: 5, estado: 'ACTIVO', texto: texto || undefined }, signal })).data, pagina, item => { if (!id(item.activoId) || !text(item.codigo) || !text(item.nombre) || item.estado !== 'ACTIVO') throw invalid(); });
+    return { ...result, elementos: result.elementos.map(item => ({ id: item.activoId, label: item.codigo + ' · ' + item.nombre })) };
+  },
+  responsibles: async (empresaId, pagina, signal) => {
+    const result = validatePage((await client.request('get', '/api/v1/empresas/{empresaId}/responsables-negocio', { path: { empresaId }, query: { pagina, tamano: 5, estado: 'ACTIVO' }, signal })).data, pagina, item => { if (!id(item.responsableId) || !text(item.nombre) || item.estado !== 'ACTIVO') throw invalid(); });
+    return { ...result, elementos: result.elementos.map(item => ({ id: item.responsableId, label: item.nombre })) };
+  },
   list: async (empresaId, query, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/riesgos', { path: { empresaId }, query, signal })).data,
   detail: async (empresaId, riesgoId, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}', { path: { empresaId, riesgoId }, signal })).data,
   inherent: async (empresaId, riesgoId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/riesgos/{riesgoId}/valoraciones-inherentes', { path: { empresaId, riesgoId }, query: { pagina, tamano: 5 }, signal })).data,

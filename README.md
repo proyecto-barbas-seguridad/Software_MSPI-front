@@ -94,6 +94,12 @@ El formulario conserva cambios ante errores recuperables y protege la navegació
 
 Distingue borrador, pendiente, nivel registrado, histórico, vigente y revisión requerida usando los datos del backend, sin calcular descuentos automáticos. AE/GS/AU pueden consultar; RA solo no accede al módulo. Incluye fallos parciales, pérdida de autorización, cancelación de consultas y filtros conservados dentro de una empresa. La gestión y valoración de riesgos quedan para sus historias. [Criterios, decisiones y verificación de HU-FRONT-017](docs/hu/HU-FRONT-017.md).
 
+## Gestión inicial de riesgos · HU-FRONT-018
+
+AE y GS pueden **Crear riesgo**, **Editar riesgo** y **Iniciar análisis** desde identificado. La creación requiere activo y responsable de negocio de la empresa; la edición precarga valores reales y conserva referencias actuales. En tratamiento/seguimiento solo permite cambiar responsable. Los cambios de contexto ya valorado requieren motivo; cerrados no admiten edición.
+
+Todas las escrituras usan revisión capturada/CSRF y vuelven a consultar la ficha. Incluye protección de cambios, códigos duplicados, referencias no disponibles, conflictos y resultados inciertos sin reenvío automático. La valoración y las demás transiciones quedan para sus historias. [Criterios, decisiones y verificación de HU-FRONT-018](docs/hu/HU-FRONT-018.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

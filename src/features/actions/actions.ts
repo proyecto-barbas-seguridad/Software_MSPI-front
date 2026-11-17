@@ -1,6 +1,11 @@
 import { api, ApiError } from '../../shared/api/client';
-import type { components } from '../../shared/api/generated/schema';
+import type { components, operations } from '../../shared/api/generated/schema';
 import { calendarDay } from '../../shared/date/companyDay';
+export type Progress = components['schemas']['ActionProgress'];
+export type Delivery = components['schemas']['ActionDelivery'];
+export type Decision = components['schemas']['ActionDecision'];
+export type ActionUploadResult = components['schemas']['ActionEvidenceUpload'];
+export type UploadBody = operations['cargarEvidenciaAccion']['requestBody']['content']['multipart/form-data'] & operations['cargarEvidenciaAccion']['parameters']['query'];
 export type ActionData = components['schemas']['ActionData'];
 export type NewAction = components['schemas']['CreateAction'];
 export type EditAction = components['schemas']['EditAction'];
@@ -21,6 +26,10 @@ const count = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v) &
 const instant = (v: unknown) => typeof v === 'string' && Number.isFinite(Date.parse(v));
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar la información de acciones.');
 export interface ActionService {
+  progress(company: string, action: string, body: Progress, signal: AbortSignal): Promise<Action>;
+  deliver(company: string, action: string, body: Delivery, signal: AbortSignal): Promise<Action>;
+  decide(company: string, action: string, delivery: string, body: Decision, signal: AbortSignal): Promise<Action>;
+  upload(company: string, action: string, body: UploadBody, signal: AbortSignal): Promise<ActionUploadResult>;
   create(company: string, body: NewAction, signal: AbortSignal): Promise<Action>;
   edit(company: string, action: string, body: EditAction, signal: AbortSignal): Promise<Action>;
   cancel(company: string, action: string, revision: number, reason: string, signal: AbortSignal): Promise<Action>;
@@ -40,6 +49,10 @@ export interface ActionService {
   file(company: string, action: string, evidence: string, kind: 'action' | 'context', signal: AbortSignal): Promise<Blob>;
 }
 export const createActionService = (client = api): ActionService => ({
+  progress: async (empresaId, accionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/acciones/{accionId}/avances', { path: { empresaId, accionId }, body, signal })).data,
+  deliver: async (empresaId, accionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/acciones/{accionId}/entregas', { path: { empresaId, accionId }, body, signal })).data,
+  decide: async (empresaId, accionId, entregaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/acciones/{accionId}/entregas/{entregaId}/decision', { path: { empresaId, accionId, entregaId }, body, signal })).data,
+  upload: async (empresaId, accionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/acciones/{accionId}/evidencias', { path: { empresaId, accionId }, query: { revisionEsperada: body.revisionEsperada, ...(body.descripcion ? { descripcion: body.descripcion } : {}) }, body: { archivo: body.archivo }, signal })).data,
   create: async (empresaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/acciones', { path: { empresaId }, body, signal })).data,
   edit: async (empresaId, accionId, body, signal) => (await client.request('put', '/api/v1/empresas/{empresaId}/acciones/{accionId}', { path: { empresaId, accionId }, body, signal })).data,
   cancel: async (empresaId, accionId, revisionEsperada, motivo, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/acciones/{accionId}/cancelar', { path: { empresaId, accionId }, body: { revisionEsperada, motivo }, signal })).data,
@@ -90,4 +103,24 @@ function choices<T>(data: Page<T>, page: number, map: (item: T) => Choice): Page
   validatePage(data, page, () => {}); const elementos = data.elementos.map(map);
   if (elementos.some(item => !id(item.id) || !text(item.label) || !item.label.trim()) || new Set(elementos.map(item => item.id)).size !== elementos.length) throw invalid();
   return { ...data, elementos };
+}
+
+export const canExecute = (roles: string[]) => roles.some(role => ['AE', 'GS', 'RA'].includes(role));
+export const executing = (action: Action) => ['PENDIENTE', 'EN_EJECUCION'].includes(action.estado);
+export async function currentDelivery(company: string, action: Action, userId: string | undefined, service: ActionService, signal: AbortSignal, scope?: AbortSignal) {
+  if (action.estado !== 'EN_REVISION' || !action.entregaVigenteId || !userId || !uuid.test(userId)) throw new ApiError(409, 'ENTREGA_NO_DISPONIBLE', 'La revisión requiere una entrega vigente y una identidad de sesión confirmada.');
+  const seen = new Set<string>();
+  for (let page = 0; ; page++) {
+    if (signal.aborted || scope?.aborted) throw new DOMException('Cancelada', 'AbortError');
+    const rows = validateHistory(await service.history(company, action.accionId, page, signal));
+    if (signal.aborted || scope?.aborted) throw new DOMException('Cancelada', 'AbortError');
+    for (const row of rows) {
+      if (seen.has(row.eventoId)) throw new ApiError(409, 'HISTORIAL_CAMBIADO', 'El historial cambió durante la consulta. Actualiza la acción.'); seen.add(row.eventoId);
+      if (row.eventoId === action.entregaVigenteId) {
+        if (row.tipo !== 'SOLICITUD_REVISION' || row.responsableMembresiaId !== action.responsableMembresiaId || !row.comentario?.trim() || (action.evidenciaRequerida && !row.evidenciaId)) throw new ApiError(409, 'ENTREGA_NO_DISPONIBLE', 'La entrega y la ficha no son coherentes. Consulta el estado actual.');
+        return { event: row, own: row.autorId.toLowerCase() === userId.toLowerCase() };
+      }
+    }
+    if (rows.length < 5) throw new ApiError(409, 'ENTREGA_NO_DISPONIBLE', 'No se encontró la entrega vigente en el historial autorizado.');
+  }
 }

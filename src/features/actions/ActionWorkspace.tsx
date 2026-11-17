@@ -1,5 +1,5 @@
 import { Alert, Box, Button, Link, Paper, Stack, Typography } from '@mui/material';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ApiError } from '../../shared/api/client';
 import { capabilities } from '../access/workspace';
@@ -7,8 +7,11 @@ import type { Company } from '../access/workspace';
 import { date, timestamp } from '../dashboard/panel';
 import { eventNames, states, uuid, validateAction, validateEvidence, validateHistory, validatePage } from './actions';
 import type { Action, ActionService, Evidence } from './actions';
+import type { ActionMode } from './ActionEditor';
+const ActionEditor = lazy(() => import('./ActionEditor'));
+const noop = () => {}; const allow = () => true;
 type Access = { scope?: AbortSignal; onAuthorization: (error: ApiError) => void };
-function useRead<T>(load: (signal: AbortSignal) => Promise<T>, { scope, onAuthorization }: Access) {
+export function useActionRead<T>(load: (signal: AbortSignal) => Promise<T>, { scope, onAuthorization }: Access) {
   const [data, setData] = useState<T>(); const [error, setError] = useState<ApiError>(); const [loading, setLoading] = useState(true); const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     const controller = new AbortController(); setData(undefined); setError(undefined); setLoading(true);
@@ -23,18 +26,24 @@ function useRead<T>(load: (signal: AbortSignal) => Promise<T>, { scope, onAuthor
 function ErrorNotice({ error }: { error: ApiError }) { return <Alert severity="error">{error.status === 404 ? 'La acción o su archivo no está disponible en este contexto.' : error.message}{error.correlationId && ` Referencia de soporte: ${error.correlationId}`}{error.retryAfter !== undefined && ` El servidor indicó esperar ${error.retryAfter} segundos antes de reintentar.`}</Alert>; }
 function Pager({ page, more, name, load }: { page: number; more: boolean; name: string; load: (page: number) => void }) { return <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap', alignItems: 'center' }}><Button disabled={!page} aria-label={'Anterior en ' + name} onClick={() => load(page - 1)}>Anterior</Button><Typography>Página {page + 1}</Typography><Button disabled={!more} aria-label={'Siguiente en ' + name} onClick={() => load(page + 1)}>Siguiente</Button></Stack>; }
 function Details({ rows }: { rows: [string, ReactNode][] }) { return <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(140px,1fr) minmax(0,2fr)' }, gap: 1, '& dt': { color: 'text.secondary' }, '& dd': { m: 0, mb: 1, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }}>{rows.map(([name, value]) => <Box key={name} sx={{ display: 'contents' }}><Typography component="dt">{name}</Typography><Typography component="dd">{value}</Typography></Box>)}</Box>; }
-export default function ActionWorkspace({ company, actionId, initialPage = 0, service, scope, onAuthorization, onPage }: { company: Company; actionId?: string; initialPage?: number; service: ActionService; onPage: (page: number) => void } & Access) {
+export default function ActionWorkspace({ company, actionId, initialPage = 0, service, scope, onAuthorization, onPage, onDirty = noop, onPending = noop, onLeave = allow }: { onDirty?: (dirty: boolean) => void; onPending?: (pending: boolean) => void; onLeave?: () => boolean; company: Company; actionId?: string; initialPage?: number; service: ActionService; onPage: (page: number) => void } & Access) {
+  const [mode, setMode] = useState<ActionMode>(); const [notice, setNotice] = useState<string>();
+  useEffect(() => { setMode(undefined); setNotice(undefined); }, [actionId]);
   const [page, setPage] = useState(initialPage); const heading = useRef<HTMLHeadingElement>(null); const general = capabilities(company).read; const allowed = capabilities(company).actions;
   const load = useCallback(async (signal: AbortSignal) => {
     if (!allowed) throw new ApiError(403, 'ACCESO_DENEGADO', 'No tienes acceso a acciones de esta empresa.');
     if (actionId) { if (!uuid.test(actionId)) throw new ApiError(404, 'ACCION_NO_DISPONIBLE', 'Acción no disponible.'); return { action: validateAction(await service.detail(company.empresaId, actionId, signal), actionId) }; }
     return { list: validatePage(await service.list(company.empresaId, page, signal), page, item => validateAction(item)) };
   }, [allowed, company.empresaId, actionId, page, service]);
-  const state = useRead(load, { scope, onAuthorization });
+  const state = useActionRead(load, { scope, onAuthorization });
   useEffect(() => { if (!state.loading) heading.current?.focus(); }, [state.loading]);
   const base = '#/empresas/' + company.empresaId + '/acciones';
+  if (mode) return <Suspense fallback={<Typography role="status">Abriendo formulario de acción…</Typography>}><ActionEditor company={company} action={state.data?.action} mode={mode} service={service} scope={scope} onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending} onCancel={() => { if (onLeave()) setMode(undefined); }} onSaved={created => { setMode(undefined); if (created) window.location.hash = base + '/' + created.accionId; else { if (mode === 'create') { setPage(0); onPage(0); } setNotice('Consulta actualizada del servidor. Revisa la acción, su responsable y el contexto antes de continuar.'); state.retry(); } }} /></Suspense>;
   return <Stack component="section" spacing={3} aria-labelledby="actions-title" aria-busy={state.loading} sx={{ overflowWrap: 'anywhere' }}>
     <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}><Typography id="actions-title" variant="h2" ref={heading} tabIndex={-1}>{actionId ? 'Ficha de acción' : general ? 'Acciones' : 'Mis acciones'}</Typography>{actionId && <Link href={base}>Volver a {general ? 'acciones' : 'mis acciones'}</Link>}<Button disabled={state.loading} onClick={state.retry}>Actualizar {actionId ? 'acción' : 'acciones'}</Button></Stack>
+    {notice && <Alert severity="info">{notice}</Alert>}
+    {!actionId && capabilities(company).write && <Button variant="contained" sx={{ alignSelf: 'flex-start' }} onClick={() => setMode('create')}>Crear acción</Button>}
+    {state.data?.action && capabilities(company).write && <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}>{['PENDIENTE', 'EN_EJECUCION'].includes(state.data.action.estado) && <Button onClick={() => setMode('edit')}>Editar acción</Button>}{['PENDIENTE', 'EN_EJECUCION', 'EN_REVISION'].includes(state.data.action.estado) && <Button onClick={() => setMode('cancel')}>Cancelar acción</Button>}</Stack>}
     <Typography>{general ? 'Consulta de acciones de la empresa activa, según tus permisos combinados.' : 'El servidor muestra únicamente las acciones que mantienes asignadas. El contexto y sus archivos fueron seleccionados para esta tarea; no habilitan acceso a registros completos.'}</Typography>
     {state.loading && <Typography role="status">Consultando acciones…</Typography>}{state.error && <ErrorNotice error={state.error} />}
     {state.data?.list && <>{!state.data.list.elementos.length && <Alert severity="info">No hay acciones visibles en esta página. No representa una medida de cumplimiento.</Alert>}<Stack component="ul" spacing={2} sx={{ listStyle: 'none', p: 0, m: 0 }}>{state.data.list.elementos.map(action => <Paper component="li" key={action.accionId} sx={{ p: 2 }}><Stack spacing={1}><Link href={base + '/' + action.accionId} sx={{ fontWeight: 600 }}>{action.codigo}</Link><Typography>{action.descripcion}</Typography><Typography>{states[action.estado]} · Fecha límite: {date(action.fechaLimite)} · {action.vencida ? 'Vencida' : 'No vencida'} según el servidor</Typography></Stack></Paper>)}</Stack><Pager page={page} more={state.data.list.hayMas} name="acciones" load={value => { setPage(value); onPage(value); }} /></>}
@@ -55,11 +64,11 @@ function ActionDetail({ company, action, service, scope, onAuthorization }: { co
   </>;
 }
 function History({ company, actionId, service, scope, onAuthorization }: { company: Company; actionId: string; service: ActionService } & Access) {
-  const [page, setPage] = useState(0); const load = useCallback(async (signal: AbortSignal) => validateHistory(await service.history(company.empresaId, actionId, page, signal)), [company.empresaId, actionId, page, service]); const state = useRead(load, { scope, onAuthorization });
+  const [page, setPage] = useState(0); const load = useCallback(async (signal: AbortSignal) => validateHistory(await service.history(company.empresaId, actionId, page, signal)), [company.empresaId, actionId, page, service]); const state = useActionRead(load, { scope, onAuthorization });
   return <Stack spacing={2} sx={{ mt: 2 }} aria-busy={state.loading}><Typography>Este historial contiene avances, solicitudes y decisiones de revisión. No es el registro administrativo completo. El historial no informa el total de eventos; la página siguiente puede estar vacía.</Typography>{state.loading && <Typography role="status">Consultando historial de acción…</Typography>}{state.error && <ErrorNotice error={state.error} />}<Button disabled={state.loading} onClick={state.retry}>Actualizar historial de acción</Button>{state.data && <>{!state.data.length && <Typography>No hay eventos de avance o revisión en esta página.</Typography>}{state.data.map(item => <Paper component="article" key={item.eventoId} sx={{ p: 2 }}><Stack spacing={1}><Typography sx={{ fontWeight: 600 }}>{eventNames[item.tipo]} · {timestamp(item.creadaEn, company.zonaHoraria)}</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{item.comentario || 'Sin comentario'}</Typography><Typography variant="body2">Autor (identificador): {item.autorId}</Typography></Stack></Paper>)}<Pager page={page} more={state.data.length === 5} name="historial de acción" load={setPage} /></>}</Stack>;
 }
 function Files({ company, actionId, service, scope, onAuthorization }: { company: Company; actionId: string; service: ActionService } & Access) {
-  const [page, setPage] = useState(0); const load = useCallback(async (signal: AbortSignal) => validatePage(await service.evidence(company.empresaId, actionId, page, signal), page, validateEvidence), [company.empresaId, actionId, page, service]); const state = useRead(load, { scope, onAuthorization });
+  const [page, setPage] = useState(0); const load = useCallback(async (signal: AbortSignal) => validatePage(await service.evidence(company.empresaId, actionId, page, signal), page, validateEvidence), [company.empresaId, actionId, page, service]); const state = useActionRead(load, { scope, onAuthorization });
   return <Stack spacing={2} sx={{ mt: 2 }} aria-busy={state.loading}><Typography>La inspección indicada es la última registrada; se comprueba de nuevo al descargar.</Typography>{state.loading && <Typography role="status">Consultando evidencias de acción…</Typography>}{state.error && <ErrorNotice error={state.error} />}<Button disabled={state.loading} onClick={state.retry}>Actualizar evidencias de acción</Button>{state.data && <>{!state.data.elementos.length && <Typography>No hay evidencias de acción en esta página.</Typography>}{state.data.elementos.map(item => <Paper component="article" key={item.evidenciaId} sx={{ p: 2 }}><Stack spacing={1}><Typography>{item.nombreOriginal} · {item.tamanoBytes} bytes</Typography><Typography>{item.descripcion || 'Sin descripción'} · {timestamp(item.creadaEn, company.zonaHoraria)}</Typography><Typography>Inspección registrada: {({ LIMPIA: 'Limpia', PENDIENTE: 'Pendiente', ERROR: 'Error' })[item.estadoInspeccion]}</Typography><ActionFile company={company.empresaId} actionId={actionId} evidenceId={item.evidenciaId} kind="action" name={item.nombreOriginal} label={'Descargar ' + item.nombreOriginal} expected={item} service={service} scope={scope} onAuthorization={onAuthorization} /></Stack></Paper>)}<Pager page={page} more={state.data.hayMas} name="evidencias de acción" load={setPage} /></>}</Stack>;
 }
 function ActionFile({ company, actionId, evidenceId, kind, name, label, expected, service, scope, onAuthorization }: { company: string; actionId: string; evidenceId: string; kind: 'action' | 'context'; name: string; label: string; expected?: Evidence; service: ActionService } & Access) {
@@ -77,3 +86,5 @@ function ActionFile({ company, actionId, evidenceId, kind, name, label, expected
   }
   return <Stack spacing={1}>{error && <ErrorNotice error={error} />}<Button disabled={pending || [401, 403].includes(error?.status || 0)} onClick={() => { void download(); }} aria-label={label}>{pending ? 'Descargando…' : label}</Button></Stack>;
 }
+
+export { ErrorNotice as ActionError, Pager as ActionPager };

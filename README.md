@@ -148,6 +148,12 @@ Cada verificación requiere otro adjunto. Fechas/cantidades comienzan pendientes
 
 Incluye historial operativo y evidencias bajo demanda, descarga autorizada/inspeccionada y pérdida de acceso tras reasignación o revocación. Conserva la página dentro de la empresa y no inventa totales del historial. Los códigos del panel enlazan a las fichas. [Criterios, decisiones y verificación de HU-FRONT-026](docs/hu/HU-FRONT-026.md). Creación, edición, entrega y revisión siguen para sus historias.
 
+## Crear, editar, reasignar y cancelar acciones · HU-FRONT-027
+
+AE/GS pueden **Crear acción** desde un riesgo o hallazgo, seleccionar una membresía habilitada y preparar plazo, resultado, requisitos de evidencia y contexto para RA. Los archivos de contexto se eligen expresamente entre fuentes autorizadas, con motivo por archivo y retirada individual.
+
+**Editar acción** precarga los valores y exige motivo; reasignar requiere confirmación. Permite conservar un plazo vencido, pero un plazo cambiado no puede ser anterior al día empresarial. **Cancelar acción** exige motivo y confirmación y conserva antecedentes. Mantiene revisión capturada, CSRF, protección de cambios y relectura sin reenvío automático ante incertidumbre. [Criterios, decisiones y verificación de HU-FRONT-027](docs/hu/HU-FRONT-027.md). Entrega y revisión independiente siguen para la siguiente HU.
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

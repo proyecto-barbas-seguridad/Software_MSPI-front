@@ -9,7 +9,7 @@ export function WorkspaceShell({ children, mode, onToggleMode, panelHref, sectio
   panelHref?: string;
   actionsHref?: string;
   actionsLabel?: string;
-  section?: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions';
+  section?: 'panel' | 'assets' | 'evaluations' | 'risks' | 'controls' | 'actions' | 'reports';
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return <Box>
@@ -37,6 +37,7 @@ export function WorkspaceShell({ children, mode, onToggleMode, panelHref, sectio
             <Button component="a" href={panelHref + '/evaluaciones'} aria-current={section === 'evaluations' ? 'page' : undefined} variant={section === 'evaluations' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Consultar evaluaciones</Button>
             <Button component="a" href={panelHref + '/riesgos'} aria-current={section === 'risks' ? 'page' : undefined} variant={section === 'risks' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Consultar riesgos</Button>
             <Button component="a" href={panelHref + '/controles'} aria-current={section === 'controls' ? 'page' : undefined} variant={section === 'controls' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Implementaciones de controles</Button>
+            <Button component="a" href={panelHref + '/reportes'} aria-current={section === 'reports' ? 'page' : undefined} variant={section === 'reports' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>Reportes</Button>
           </>}
           {actionsHref && <Button component="a" href={actionsHref} aria-current={section === 'actions' ? 'page' : undefined} variant={section === 'actions' ? 'contained' : 'outlined'} onClick={() => setMenuOpen(false)}>{actionsLabel}</Button>}
           <Button component="a" href="/interfaz/#/empresas" variant="outlined" onClick={() => setMenuOpen(false)}>Mis empresas</Button>

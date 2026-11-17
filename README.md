@@ -160,6 +160,12 @@ El responsable actual con AE/GS/RA puede **Registrar avance**, **Adjuntar eviden
 
 AE/GS puede **Aprobar entrega** o **Devolver entrega** con motivo y confirmación, sobre la entrega vigente. La interfaz comprueba su autor contra la identidad de sesión y bloquea ambas decisiones propias, aunque se combinen roles; el backend vuelve a validarlo. Mantiene revisión capturada, protección de cambios, CSRF, relectura y resultados inciertos sin reenvío. [Criterios, decisiones y verificación de HU-FRONT-028](docs/hu/HU-FRONT-028.md).
 
+## Reporte básico empresarial e impresión · HU-FRONT-029
+
+AE/GS/AU pueden abrir **Reportes**, seleccionar periodo, filtros, evaluación opcional y secciones, y **Generar reporte**. La vista utiliza exclusivamente el corte y los agregados devueltos por el backend, con empresa, zona, filtros efectivos y metodologías; distingue secciones excluidas, cero, pendientes y resultados provisionales.
+
+**Imprimir o guardar como PDF** abre el diálogo del navegador sobre el documento, conservando su corte. Cambiar filtros bloquea imprimir hasta regenerar; la pérdida de autorización retira el contexto. RA solo y AP sin membresía de lectura no acceden. [Criterios, decisiones y verificación de HU-FRONT-029](docs/hu/HU-FRONT-029.md). Impresión y paginación requieren revisión manual en navegador real.
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

@@ -1,5 +1,8 @@
 import { api, ApiError } from '../../shared/api/client';
 import type { components } from '../../shared/api/generated/schema';
+export type NewControl = components['schemas']['CreateControlImplementation'];
+export type ChangeControl = components['schemas']['ChangeControlImplementation'];
+export type Choice = { id: string; label: string };
 export type Control = components['schemas']['ControlImplementation'];
 export type Version = components['schemas']['ControlVersion'];
 export type Verification = components['schemas']['ControlVerification'];
@@ -13,12 +16,33 @@ const instant = (v: unknown) => typeof v === 'string' && Number.isFinite(Date.pa
 const day = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && instant(v) && new Date(v).toISOString().slice(0,10) === v;
 const invalid = () => new ApiError(502, 'RESPUESTA_INVALIDA', 'No pudimos validar la información del control.');
 export interface ControlService {
+  create(company: string, body: NewControl, signal: AbortSignal): Promise<Control>;
+  start(company: string, control: string, revision: number, signal: AbortSignal): Promise<Control>;
+  change(company: string, control: string, body: ChangeControl, signal: AbortSignal): Promise<Control>;
+  catalogs(company: string, page: number, signal: AbortSignal): Promise<Page<Choice>>;
+  elements(company: string, catalog: string, page: number, signal: AbortSignal): Promise<Page<Choice>>;
+  responsibles(company: string, page: number, signal: AbortSignal): Promise<Page<Choice>>;
   list(company: string, page: number, signal: AbortSignal): Promise<Page<Control>>;
   detail(company: string, control: string, signal: AbortSignal): Promise<Control>;
   versions(company: string, control: string, page: number, signal: AbortSignal): Promise<Page<Version>>;
   verifications(company: string, control: string, version: string, page: number, signal: AbortSignal): Promise<Page<Verification>>;
 }
 export const createControlService = (client = api): ControlService => ({
+  create: async (empresaId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/implementaciones-control', { path: { empresaId }, body, signal })).data,
+  start: async (empresaId, implementacionId, revisionEsperada, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/iniciar', { path: { empresaId, implementacionId }, body: { revisionEsperada }, signal })).data,
+  change: async (empresaId, implementacionId, body, signal) => (await client.request('post', '/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/cambiar', { path: { empresaId, implementacionId }, body, signal })).data,
+  catalogs: async (empresaId, pagina, signal) => {
+    const result = validatePage((await client.request('get', '/api/v1/empresas/{empresaId}/catalogos', { path: { empresaId }, query: { pagina, tamano: 5, disponibleNuevos: true }, signal })).data, pagina, item => { if (!id(item.versionId) || !text(item.nombre) || !text(item.codigo) || !text(item.version) || typeof item.disponibleNuevos !== 'boolean') throw invalid(); });
+    return { ...result, elementos: result.elementos.filter(item => item.disponibleNuevos).map(item => ({ id: item.versionId, label: `${item.nombre} · ${item.codigo} · ${item.version}` })) };
+  },
+  elements: async (empresaId, versionId, pagina, signal) => {
+    const result = validatePage((await client.request('get', '/api/v1/empresas/{empresaId}/catalogos/{versionId}/elementos', { path: { empresaId, versionId }, query: { pagina, tamano: 5, tipo: 'CONTROL' }, signal })).data, pagina, item => { if (!id(item.elementoId) || item.versionId !== versionId || item.tipo !== 'CONTROL' || !text(item.codigo) || !text(item.titulo)) throw invalid(); });
+    return { ...result, elementos: result.elementos.map(item => ({ id: item.elementoId, label: `${item.codigo} · ${item.titulo}` })) };
+  },
+  responsibles: async (empresaId, pagina, signal) => {
+    const result = validatePage((await client.request('get', '/api/v1/empresas/{empresaId}/responsables-negocio', { path: { empresaId }, query: { pagina, tamano: 5, estado: 'ACTIVO' }, signal })).data, pagina, item => { if (!id(item.responsableId) || !text(item.nombre) || item.estado !== 'ACTIVO') throw invalid(); });
+    return { ...result, elementos: result.elementos.map(item => ({ id: item.responsableId, label: item.nombre })) };
+  },
   list: async (empresaId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/implementaciones-control', { path: { empresaId }, query: { pagina, tamano: 5 }, signal })).data,
   detail: async (empresaId, implementacionId, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}', { path: { empresaId, implementacionId }, signal })).data,
   versions: async (empresaId, implementacionId, pagina, signal) => (await client.request('get', '/api/v1/empresas/{empresaId}/implementaciones-control/{implementacionId}/versiones', { path: { empresaId, implementacionId }, query: { pagina, tamano: 5 }, signal })).data,

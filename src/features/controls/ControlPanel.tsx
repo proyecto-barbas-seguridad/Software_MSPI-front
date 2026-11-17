@@ -24,25 +24,29 @@ export function ControlPager({ page, more, label, load }: { page: number; more: 
 function Details({ rows }: { rows: [string, ReactNode][] }) { return <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(140px,1fr) minmax(0,2fr)' }, gap: 1, '& dt': { color: 'text.secondary' }, '& dd': { m: 0, mb: 1, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }}>{rows.map(([key, value]) => <Box key={key} sx={{ display: 'contents' }}><Typography component="dt">{key}</Typography><Typography component="dd">{value}</Typography></Box>)}</Box>; }
 type Props = { company: string; controlId: string; service: ControlService; zone: string } & ControlAccess;
 export default function ControlPanel({ company, controlId, service, zone, scope, onAuthorization }: Props) {
-  const [historyOpen, setHistoryOpen] = useState(false);
   const load = useCallback(async (signal: AbortSignal) => { if (!uuid.test(controlId)) throw new ApiError(404, 'IMPLEMENTACION_NO_DISPONIBLE', 'Implementación no disponible.'); return validateControl(await service.detail(company, controlId, signal), controlId); }, [company, controlId, service]);
   const state = useControlRead(load, { scope, onAuthorization });
   return <Stack spacing={2} sx={{ mt: 2, overflowWrap: 'anywhere' }} aria-busy={state.loading}>
     {state.loading && <Typography role="status">Consultando implementación de control…</Typography>}{state.error && <ControlError error={state.error} />}<Button disabled={state.loading} onClick={state.retry}>Actualizar implementación de control</Button>
-    {state.data && <><Typography variant="h2" component="h4">{state.data.versionActual.detalle.nombre}</Typography><Details rows={[
-      ['Estado de implementación', controlLabels[state.data.estado]], ['Resultado vigente del servidor', controlLabels[state.data.resultadoVigente]], ['Revisión de implementación', state.data.revision],
-    ]} />{state.data.causaSinVigencia && <Alert severity="warning">Sin vigencia: {controlLabels[state.data.causaSinVigencia]}. Consulta el contexto y las evidencias antes de utilizar esta verificación.</Alert>}
-      <Typography variant="body2">Esta es una implementación empresarial. Su estado y verificación no son la nota del catálogo ni una reducción automática del riesgo.</Typography>
-      <VersionBlock {...{ company, service, zone, scope, onAuthorization }} control={state.data} version={state.data.versionActual} />
-      <Box component="details"><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Referencias de catálogo e implementación</Typography><Details rows={[
-        ['Implementación', state.data.implementacionId], ['Versión de catálogo', state.data.versionCatalogoId], ['Elemento de catálogo', state.data.elementoId], ['Última verificación (referencia)', state.data.ultimaVerificacionId || 'No registrada'],
-      ]} /></Box>
-      <Box component="details" onToggle={event => setHistoryOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Historial de versiones del control</Typography>
-        {historyOpen && <Versions {...{ company, service, zone, scope, onAuthorization }} control={state.data} />}
-      </Box>
-    </>}
+    {state.data && <ControlDetail company={company} control={state.data} service={service} zone={zone} scope={scope} onAuthorization={onAuthorization} />}
   </Stack>;
 }
+export function ControlDetail({ company, control, service, zone, scope, onAuthorization }: Omit<Props, 'controlId'> & { control: Control }) {
+  const [historyOpen, setHistoryOpen] = useState(false);
+  return <><Typography variant="h2" component="h4">{control.versionActual.detalle.nombre}</Typography><Details rows={[
+      ['Estado de implementación', controlLabels[control.estado]], ['Resultado vigente del servidor', controlLabels[control.resultadoVigente]], ['Revisión de implementación', control.revision],
+    ]} />{control.causaSinVigencia && <Alert severity="warning">Sin vigencia: {controlLabels[control.causaSinVigencia]}. Consulta el contexto y las evidencias antes de utilizar esta verificación.</Alert>}
+      <Typography variant="body2">Esta es una implementación empresarial. Su estado y verificación no son la nota del catálogo ni una reducción automática del riesgo.</Typography>
+      <VersionBlock {...{ company, service, zone, scope, onAuthorization }} control={control} version={control.versionActual} />
+      <Box component="details"><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Referencias de catálogo e implementación</Typography><Details rows={[
+        ['Implementación', control.implementacionId], ['Versión de catálogo', control.versionCatalogoId], ['Elemento de catálogo', control.elementoId], ['Última verificación (referencia)', control.ultimaVerificacionId || 'No registrada'],
+      ]} /></Box>
+      <Box component="details" onToggle={event => setHistoryOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Historial de versiones del control</Typography>
+        {historyOpen && <Versions {...{ company, service, zone, scope, onAuthorization }} control={control} />}
+      </Box>
+    </>;
+}
+
 function VersionBlock({ company, service, zone, scope, onAuthorization, control, version }: Omit<Props, 'controlId'> & { control: Control; version: Version }) {
   const [open, setOpen] = useState(false);
   return <Paper component="article" sx={{ p: 2 }}><Stack spacing={2}><Typography variant="h2" component="h5">Versión {version.numero} · {version.versionId === control.versionActual.versionId ? 'Actual según la ficha' : 'Histórica'}</Typography><Details rows={[

@@ -112,6 +112,12 @@ AE y GS pueden **Vincular control al riesgo** desde una ficha no cerrada, selecc
 
 Desde el vínculo, AE/GS/AU pueden consultar la implementación, aplicación, versiones y verificaciones, con carga bajo demanda y paginación. Separa catálogo, implementación y resultado vigente; cero criterios no es pendiente y una verificación histórica no acredita vigencia actual. [Criterios, decisiones y verificación de HU-FRONT-020](docs/hu/HU-FRONT-020.md). La gestión de implementaciones, sus archivos y la valoración residual continúan para sus historias.
 
+## Valoración residual de riesgos · HU-FRONT-021
+
+AE y GS pueden crear/editar borradores residuales en análisis o tratamiento, con base inherente vigente. Permite guardar pendientes y confirmar en otro paso sobre los datos guardados. Con mitigación exige verificaciones seleccionadas expresamente de controles vinculados; sin mitigación exige justificación, ninguna verificación y conservar categorías de la base, con copia solo por acción explícita.
+
+Consulta base y antecedentes sin suponer que la primera fila es vigente; las reevaluaciones exigen motivo. El servidor valida pruebas/evidencias, vigencia y categorías y calcula el resultado, sin descuentos automáticos. Incluye protección de cambios, conflictos, borrador existente y operaciones inciertas sin reenvío. [Criterios, decisiones y verificación de HU-FRONT-021](docs/hu/HU-FRONT-021.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local

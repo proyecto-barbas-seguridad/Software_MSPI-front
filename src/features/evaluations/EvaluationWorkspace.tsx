@@ -10,6 +10,9 @@ import { EvaluationStore, states, validateEvidence, validateFinding, validatePag
 import type { Answer, AnswerQuery, Evidence, EvidencePage, EvaluationService, Finding, FindingPage } from './evaluations';
 
 import type { Editor } from './EvaluationEditor';
+import type { LifecycleMode } from './EvaluationLifecycle';
+const EvaluationLifecycle = lazy(() => import('./EvaluationLifecycle'));
+const ClosureView = lazy(() => import('./EvaluationLifecycle').then(module => ({ default: module.ClosureView })));
 const EvaluationEditor = lazy(() => import('./EvaluationEditor'));
 const noop = () => {};
 const allow = () => true;
@@ -36,12 +39,13 @@ export default function EvaluationWorkspace({ company, evaluationId, page = 0, q
   scope?: AbortSignal; onDirty?: (dirty: boolean) => void; onPending?: (pending: boolean) => void; onLeave?: () => boolean;
 }) {
   const [editor, setEditor] = useState<Editor>();
+  const [lifecycle, setLifecycle] = useState<LifecycleMode>();
   const [notice, setNotice] = useState<string>();
   const [store] = useState(() => new EvaluationStore(company.empresaId, service, onAuthorization, scope));
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const heading = useRef<HTMLHeadingElement>(null);
   const base = '#/empresas/' + company.empresaId + '/evaluaciones';
-  useEffect(() => { setEditor(undefined); if (evaluationId) void store.detail(evaluationId, query); else void store.list(page); return () => store.dispose(); }, [store, evaluationId, page, query]);
+  useEffect(() => { setEditor(undefined); setLifecycle(undefined); if (evaluationId) void store.detail(evaluationId, query); else void store.list(page); return () => store.dispose(); }, [store, evaluationId, page, query]);
   useEffect(() => { if (state.status !== 'loading') heading.current?.focus(); }, [state.status]);
   const list = (page: number) => { onPage(page); void store.list(page); };
   const detail = (query: AnswerQuery = {}) => { onQuery?.(query); void store.detail(evaluationId!, query); };
@@ -50,6 +54,9 @@ export default function EvaluationWorkspace({ company, evaluationId, page = 0, q
     detail({ pagina: 0, tipo: type === 'CONTROL' || type === 'CLAUSULA' ? type : undefined, grupo: String(form.get('grupo') || '').trim() || undefined });
   }
   const evaluation = state.evaluation;
+  if (lifecycle && evaluation) return <Suspense fallback={<Typography role="status">Abriendo ciclo de evaluación…</Typography>}><EvaluationLifecycle companyId={company.empresaId} evaluation={evaluation} mode={lifecycle} service={service} scope={scope} onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending}
+    onCancel={() => { if (onLeave()) setLifecycle(undefined); }} onSaved={created => { setLifecycle(undefined); if (created) window.location.hash = base + '/' + created.evaluacionId;
+      else { setNotice('Estado de evaluación consultado de nuevo. Revisa la información vigente antes de continuar.'); void store.retry(); } }} /></Suspense>;
   if (editor) return <Suspense fallback={<Typography role="status">Abriendo formulario…</Typography>}><EvaluationEditor companyId={company.empresaId} mode={editor} evaluation={evaluation} service={service} scope={scope}
     onAuthorization={onAuthorization} onDirty={onDirty} onPending={onPending} onCancel={() => { if (onLeave()) setEditor(undefined); }} onSaved={created => {
       setEditor(undefined); if (created) window.location.hash = base + '/' + created.evaluacionId;
@@ -87,9 +94,15 @@ export default function EvaluationWorkspace({ company, evaluationId, page = 0, q
           <Typography component="dt">Motivo de revisión</Typography><Typography component="dd">{evaluation.motivoRevision || 'No registrado'}</Typography>
         </Details></Box>
       </Stack></Paper>
+      {capabilities(company).write && !state.differingRevisions && <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }} aria-label="Ciclo de evaluación">
+        {evaluation.estado === 'BORRADOR' && <Button variant="contained" onClick={() => setLifecycle({ kind: 'submit' })}>Enviar a revisión</Button>}
+        {evaluation.estado === 'EN_REVISION' && <><Button onClick={() => setLifecycle({ kind: 'return' })}>Devolver a borrador</Button><Button variant="contained" onClick={() => setLifecycle({ kind: 'close' })}>Cerrar evaluación</Button></>}
+        {evaluation.estado === 'CERRADA' && <Button onClick={() => setLifecycle({ kind: 'correct' })}>Crear corrección vinculada</Button>}
+      </Stack>}
+      {evaluation.estado === 'CERRADA' && <Suspense fallback={<Typography role="status">Abriendo cierre…</Typography>}><ClosureView company={company.empresaId} evaluation={evaluation} service={service} scope={scope} onAuthorization={onAuthorization} zone={company.zonaHoraria} /></Suspense>}
       {state.differingRevisions && <Alert severity="warning">La ficha, las respuestas o los resultados corresponden a revisiones distintas. Actualiza la evaluación antes de compararlos como un mismo corte.</Alert>}
-      {state.results && <EvaluationResults data={state.results} name={evaluation.nombre} panelSnapshot={false} />}
-      {state.resultsError && <ErrorNotice error={state.resultsError} />}
+      {evaluation.estado !== 'CERRADA' && state.results && <EvaluationResults data={state.results} name={evaluation.nombre} panelSnapshot={false} />}
+      {evaluation.estado !== 'CERRADA' && state.resultsError && <ErrorNotice error={state.resultsError} />}
       <Typography variant="h2" component="h3">Respuestas</Typography>
       <Box component="form" aria-label="Filtros de respuestas" onSubmit={filter} key={JSON.stringify(state.query)}>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr auto' }, gap: 2, alignItems: 'end' }}>
@@ -101,13 +114,13 @@ export default function EvaluationWorkspace({ company, evaluationId, page = 0, q
       {state.answersError && <ErrorNotice error={state.answersError} />}
       {state.answers && <>
         {!state.answers.elementos.length && <Alert severity="info">No hay respuestas en esta página con los filtros aplicados.</Alert>}
-        {state.answers.elementos.map(answer => <AnswerCard key={answer.respuestaId} answer={answer} company={company} evaluationId={evaluation.evaluacionId} service={service} scope={scope} onAuthorization={onAuthorization} editable={Boolean(editable)} revision={evaluation.revision} onEdit={() => setEditor({ kind: 'answer', answer })} onFinding={finding => setEditor({ kind: 'finding', answer, finding })} />)}
+        {state.answers.elementos.map(answer => <AnswerCard key={answer.respuestaId} answer={answer} company={company} evaluationId={evaluation.evaluacionId} service={service} scope={scope} onAuthorization={onAuthorization} editable={Boolean(editable)} revision={evaluation.revision} onConfirm={() => setLifecycle({ kind: 'confirm', answer })} onEdit={() => setEditor({ kind: 'answer', answer })} onFinding={finding => setEditor({ kind: 'finding', answer, finding })} />)}
         <Pager label="respuestas" page={state.answers.pagina} more={state.answers.hayMas} load={pagina => detail({ ...state.query, pagina })} />
       </>}
     </>}
   </Stack>;
 }
-function AnswerCard({ answer, company, evaluationId, service, scope, onAuthorization, editable, revision, onEdit, onFinding }: { editable: boolean; revision: number; onEdit: () => void; onFinding: (finding?: Finding) => void; answer: Answer; company: Company; evaluationId: string; service: EvaluationService; scope?: AbortSignal; onAuthorization: (error: ApiError) => void }) {
+function AnswerCard({ answer, company, evaluationId, service, scope, onAuthorization, editable, revision, onEdit, onFinding, onConfirm }: { onConfirm: () => void; editable: boolean; revision: number; onEdit: () => void; onFinding: (finding?: Finding) => void; answer: Answer; company: Company; evaluationId: string; service: EvaluationService; scope?: AbortSignal; onAuthorization: (error: ApiError) => void }) {
   const [open, setOpen] = useState(false); const [findingsOpen, setFindingsOpen] = useState(false); const value = answer.respuesta;
   return <Paper component="article" aria-label={'Respuesta ' + answer.codigo} sx={{ p: 2 }}><Stack spacing={2}>
     <Typography variant="overline">{answer.tipo === 'CONTROL' ? 'Control' : 'Cláusula'} · {labels[answer.grupo] || answer.grupo}</Typography>
@@ -119,6 +132,7 @@ function AnswerCard({ answer, company, evaluationId, service, scope, onAuthoriza
       <Typography component="dt">Fundamento</Typography><Typography component="dd">{value.fundamento || (value.aplicabilidad === 'NO_APLICA' ? 'No registrado' : 'Pendiente')}</Typography>
     </Details>
     {answer.respuestaAnteriorId && <Alert severity={answer.heredadaConfirmada ? 'info' : 'warning'}>{answer.heredadaConfirmada ? 'Respuesta heredada confirmada.' : 'Respuesta heredada pendiente de confirmación en esta evaluación.'}</Alert>}
+    {editable && answer.respuestaAnteriorId && !answer.heredadaConfirmada && <Button sx={{ alignSelf: 'flex-start' }} onClick={onConfirm}>Confirmar heredada {answer.codigo}</Button>}
     {editable && <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: 'wrap' }}><Button onClick={onEdit}>Diligenciar {answer.codigo}</Button><Button onClick={() => onFinding()}>Registrar hallazgo en {answer.codigo}</Button></Stack>}
     <Box component="details" onToggle={event => setFindingsOpen(event.currentTarget.open)}><Typography component="summary" sx={{ cursor: 'pointer', py: 1 }}>Ver hallazgos de {answer.codigo}</Typography>
       {findingsOpen && <FindingsList company={company} evaluationId={evaluationId} answer={answer} service={service} scope={scope} onAuthorization={onAuthorization} editable={editable} revision={revision} onEdit={onFinding} />}

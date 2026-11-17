@@ -76,6 +76,12 @@ AE y GS pueden **Crear evaluación**, elegir responsable y versiones disponibles
 
 Precarga los datos reales, preserva cero y pendientes, y exige fundamento al calificar. No aplica requiere justificación y solo se ofrece para controles. Todas las escrituras usan la revisión capturada de la evaluación y vuelven a consultar sus resultados. Incluye protección de cambios, conflictos, permisos retirados y guardados inciertos sin reenvío automático. [Criterios, decisiones propuestas y verificación de HU-FRONT-014](docs/hu/HU-FRONT-014.md). Ciclo de revisión/cierre y carga de evidencias continúan pendientes de sus historias.
 
+## Ciclo de evaluación React · HU-FRONT-015
+
+AE y GS disponen de **Enviar a revisión**, **Devolver a borrador**, **Cerrar evaluación** y **Crear corrección vinculada**, según el estado. El envío/cierre permite elegir adjuntos explícitamente y muestra los faltantes que devuelve el backend para toda la evaluación. La devolución exige motivo; la corrección abre otro borrador con responsable seleccionado, conservando el original y sus versiones. Las respuestas heredadas pendientes pueden confirmarse sin cambiar sus valores.
+
+Las evaluaciones cerradas muestran su instantánea de resultados y evidencias conservadas, también para AU. Se mantienen revisión esperada, CSRF, protección de cambios, autorización y tratamiento de operaciones inciertas sin reenvío automático. El backend valida completitud, evidencia e integridad. La carga de archivos sigue pendiente. [Criterios, decisiones propuestas y verificación de HU-FRONT-015](docs/hu/HU-FRONT-015.md).
+
 Prevención de secretos implementada en PR hacia Develop: [configuración y verificación](SECRETOS-Y-CONFIGURACION.md), [HU-SEG-002](docs/hu/HU-SEG-002.md).
 
 ## Iniciar el frontend local
